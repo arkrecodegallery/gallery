@@ -1,0 +1,15 @@
+export const keybinds = {
+	Skin_Decrement: "w",
+	Skin_Increment: "s",
+	Hero_Decrement: "a",
+	Hero_Increment: "d",
+	Cutscene: "q",
+	Touch: "e",
+	Hero_View: "z",
+	Skill_View: "x",
+	Bond_View: "c",
+	Love_Link_1: "1",
+	Love_Link_2: "2",
+	Love_Link_3: "3",
+	Listing: "f",
+} as const;

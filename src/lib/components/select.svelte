@@ -23,7 +23,7 @@
 	onValueChange={onchange}
 	bind:value={selected}
 >
-	<Select.Trigger>{selected}</Select.Trigger>
+	<Select.Trigger class="!bg-canvas">{selected}</Select.Trigger>
 	<Select.Content>
 		{#each values as value}
 			<Select.Item {value}>{value}</Select.Item>

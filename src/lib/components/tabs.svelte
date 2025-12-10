@@ -51,20 +51,20 @@
 		{@const key = getKey(view)}
 		{#if store.modelState.view === view}
 			<div
-				class="bg-background/80 border border-foreground border-r-black/0 px-4 gap-4 py-2 rounded-s-lg"
+				class="bg-canvas/80 border border-foreground/50 border-r-black/0 px-4 gap-4 py-2 rounded-s-lg items-center"
 			>
 				{name}
 			</div>
 		{:else if disabled}
 			<div
-				class="bg-background/10 border border-black/0 px-4 gap-4 py-2 rounded-s-lg flex justify-between text-border items-center"
+				class="bg-canvas/70 border border-black/0 px-4 gap-4 py-2 rounded-s-lg flex justify-between text-border items-center"
 			>
 				<p>{name}</p>
 				<Key class="text-right" disabled {key} />
 			</div>
 		{:else}
 			<div
-				class="bg-background/50 border border-black/0 px-4 gap-4 py-2 rounded-s-lg flex justify-between"
+				class="bg-canvas/80 border border-foreground/10 px-4 gap-4 py-2 rounded-s-lg flex justify-between items-center"
 			>
 				<p>{name}</p>
 				{#if (view === "alt" && store.modelState.view === "hero") || view !== "alt"}

@@ -10,11 +10,6 @@
 	const { key, disabled, ...rest }: Props = $props();
 </script>
 
-<Kbd.Root>{key}</Kbd.Root>
-
-<!-- <kbd
-	{...rest}
-	class={`border rounded leading-none align-middle px-1 pb-1 pt-0.5 border-b-2 ${rest.class} ${disabled ? "border-border text-border" : "border-foreground"}`}
->
+<Kbd.Root class={disabled ? "bg-disabled text-disabled-foreground" : ""}>
 	{key}
-</kbd> -->
+</Kbd.Root>

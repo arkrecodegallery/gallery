@@ -41,7 +41,7 @@
 </script>
 
 <div
-	class="flex flex-col p-4 bg-background rounded-br-xl text-foreground absolute top-0 gap-1"
+	class="flex flex-col p-4 bg-canvas/80 rounded-br-xl text-foreground absolute top-0 gap-1"
 >
 	<p>{details.ID}: {details.Name}</p>
 	{#if details.Stars}

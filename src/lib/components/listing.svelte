@@ -223,7 +223,7 @@
 
 <div class="absolute bottom-0 left-0 m-4 bg-background rounded-lg">
 	<Dialog.Root bind:open>
-		<Dialog.Trigger class={buttonVariants({ variant: "ghost" })}>
+		<Dialog.Trigger class={`${buttonVariants({ variant: "ghost" })} bg-canvas border border-foreground/10`}>
 			Listing <Key key={keybinds.Listing} />
 		</Dialog.Trigger>
 		<Dialog.Content class="min-w-[80vw] max-w-[80vw]">

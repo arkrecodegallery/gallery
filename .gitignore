@@ -30,6 +30,9 @@ vite.config.ts.timestamp-*
 /static/data
 /static/icons
 /static/spines
+/static/csv
+/static/gallery-data
 
 # Development
-TODO.md
+# GUIDE.md
+# TODO.md

@@ -1,50 +1,46 @@
-export interface HeroData {
-	Name: string;
-	Avatar: string;
-	ID: string;
-	Stars: string;
-	Attribute: string;
-	Class: string;
-	Constellation: string;
-	Birthday: string;
-	Bust: string;
-	Height: string;
-	Weight: string;
+// Maps ID -> Data
+export type Map = Record<string, Entry>;
+
+export interface Entry {
+	id: string;
+	icons: Icons;
+	details: Details;
+
+	hero: Bundle;
+	alt?: Bundle;
+	skill?: Bundle;
+	bond?: Bundle;
+
+	collection?: string[];
 }
 
-export interface BondData {
-	Name: string;
-	Member: string;
-	ID: string;
-	Stars: string;
-	Class: string;
+export interface Icons {
+	hero: string;
 }
 
-export interface LoveLinkData {
-	Name: string;
-	"Image 1"?: string;
-	"Image 2"?: string;
-	"Image 3"?: string;
+export interface Details {
+	name: string;
+	stars: string;
+	element: string;
+	job: string;
+	constellation: string;
+	group: string;
+	cup_size: string;
+	birthday: string;
+	height: string;
+	weight: string;
 }
 
-export type ModelView =
-	| "hero"
-	| "alt"
-	| "skill"
-	| "bond"
-	| "loveLink1"
-	| "loveLink2"
-	| "loveLink3";
+export interface Bundle {
+	mat: string;
+	skel: string;
+	atlas: string;
+}
+
+export type ModelView = "hero" | "alt" | "skill" | "bond" | "collection";
 
 export type Animation = {
 	trackIndex: number;
 	animationName: string;
 	loop: boolean;
-};
-
-export type Data = HeroData & {
-	alt: string;
-	skill: string;
-	bond: string;
-	loveLinks: string[];
 };

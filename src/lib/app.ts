@@ -21,8 +21,8 @@ export class App implements SpineCanvasApp {
 	animation!: AnimationState;
 
 	loadAssets(canvas: SpineCanvas): void {
-		const { prefix, model } = store.modelState.getModel();
-		store.assetManager.loadModel(canvas, prefix, model);
+		const entry = store.modelState.getRelativeEntry();
+		store.assetManager.loadModel(canvas, entry);
 	}
 
 	initialize(canvas: SpineCanvas) {
@@ -31,10 +31,6 @@ export class App implements SpineCanvasApp {
 	}
 
 	loadModel(canvas: SpineCanvas) {
-		// TODO load image for model before as base64
-		// or build custom AtlasAttachmentLoader override?
-		// or some black magic with intercepting fetch requests, idk how it gets the png it's looking for
-		// ^^^ it does make a network request, genuine possibility
 		const atlasLoader = new AtlasAttachmentLoader(
 			store.assetManager.getAtlas(canvas)
 		);

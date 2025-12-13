@@ -19,11 +19,6 @@ export type WithElementRef<T, U extends HTMLElement = HTMLElement> = T & {
 	ref?: U | null;
 };
 
-export function isLoveLinkView(view: ModelView) {
-	const views: ModelView[] = ["loveLink1", "loveLink2", "loveLink3"];
-	return views.includes(view);
-}
-
 export const nonEmptyFilterFn = <TData>(
 	row: Row<TData>,
 	columnId: string,

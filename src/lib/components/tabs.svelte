@@ -4,23 +4,13 @@
 	import { store } from "$lib/hooks/state.svelte";
 	import Key from "./key.svelte";
 
-	const views: ModelView[] = [
-		"loveLink1",
-		"loveLink2",
-		"loveLink3",
-		"hero",
-		"alt",
-		"skill",
-		"bond",
-	];
+	const views: ModelView[] = ["hero", "alt", "skill", "bond", "collection"];
 	const nameMap: Record<ModelView, string> = {
 		hero: "Skin",
 		alt: "Alt Skin",
 		skill: "Skill",
 		bond: "Bond",
-		loveLink1: "Love Link 1",
-		loveLink2: "Love Link 2",
-		loveLink3: "Love Link 3",
+		collection: "Collections",
 	};
 
 	function getKey(view: ModelView): string {
@@ -34,12 +24,8 @@
 				return keybinds.Skill_View;
 			case "bond":
 				return keybinds.Bond_View;
-			case "loveLink1":
+			case "collection":
 				return keybinds.Love_Link_1;
-			case "loveLink2":
-				return keybinds.Love_Link_2;
-			case "loveLink3":
-				return keybinds.Love_Link_3;
 		}
 	}
 </script>
@@ -49,7 +35,7 @@
 		{@const disabled = store.modelState.viewDisabled(view)}
 		{@const name = nameMap[view]}
 		{@const key = getKey(view)}
-		{#if store.modelState.view === view}
+		{#if store.view === view}
 			<div
 				class="bg-canvas/80 border border-foreground/50 border-r-black/0 px-4 gap-4 py-2 rounded-s-lg items-center"
 			>
@@ -67,7 +53,7 @@
 				class="bg-canvas/80 border border-foreground/10 px-4 gap-4 py-2 rounded-s-lg flex justify-between items-center"
 			>
 				<p>{name}</p>
-				{#if (view === "alt" && store.modelState.view === "hero") || view !== "alt"}
+				{#if (view === "alt" && store.view === "hero") || view !== "alt"}
 					<Key class="text-right" {key} />
 				{/if}
 			</div>

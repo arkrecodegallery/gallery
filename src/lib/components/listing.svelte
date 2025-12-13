@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { store } from "$lib/hooks/state.svelte";
-	import type { Data } from "$lib/types";
 	import { type ColumnDef } from "@tanstack/table-core";
 	import DataTable from "./data-table.svelte";
 	import * as Dialog from "$lib/components/ui/dialog/index";
@@ -16,6 +15,7 @@
 	import { onMount } from "svelte";
 	import { keybinds } from "$lib/keybinds";
 	import Toggle from "./ui/toggle/toggle.svelte";
+	import type { Entry } from "$lib/types";
 
 	const _showDetails = localStorage.getItem("showDetails");
 	const _showModels = localStorage.getItem("showModels");
@@ -23,6 +23,7 @@
 	let open = $state(false);
 	let showDetails = $state(_showDetails ? JSON.parse(_showDetails) : true);
 	let showModels = $state(_showModels ? JSON.parse(_showModels) : true);
+	let data = $derived(Object.values(store.map));
 
 	onMount(() => {
 		addKeydownListener((ev) => {
@@ -32,15 +33,15 @@
 		});
 	});
 
-	const columns: ColumnDef<Data>[] = $derived.by(() => {
-		const cols: ColumnDef<Data>[] = [
+	const columns: ColumnDef<Entry>[] = $derived.by(() => {
+		const cols: ColumnDef<Entry>[] = [
 			{
 				id: "actions",
 				cell: ({ row }) => {
-					const ID = row.original.ID;
-					const hero = store.heroData.find((h) => h.ID === ID);
-					const src = `/icons/hero_icons/${hero?.Avatar ?? "__No_Icon__.png"}`;
-					return renderSnippet(viewButton, { ID, src });
+					const id = row.original.id;
+					const entry = store.map[id];
+					const src = `/icons/hero_icons/${entry.icons.hero ?? "__No_Icon__.png"}`;
+					return renderSnippet(viewButton, { id, src });
 				},
 			},
 			{
@@ -146,36 +147,14 @@
 		return cols;
 	});
 
-	const data = $derived.by(() => {
-		const data: Data[] = [];
+	function onclick(id: string) {
+		const absoluteHeroIndex =
+			Object.values(store.map).findIndex((h) => h.id === id) ?? 0;
+		const relativeHeroIndex =
+			store.filteredHeroData.findIndex((h) => h.id === id) ?? 0;
 
-		for (const hero of store.heroData) {
-			if ((store.skelData[hero.ID] ?? []).length == 0) continue;
-			const alt = store.modelState.getAltSkin(hero);
-			const skill = store.modelState.getSkillModel(hero);
-			const bond = store.modelState.getBondModel(hero)?.ID ?? "";
-			const loveLinks = (store.modelState.getLoveLinks(hero) ?? []).map(
-				(ll) => ll.split(".")[0]
-			);
-			data.push({
-				...hero,
-				alt,
-				skill,
-				bond,
-				loveLinks,
-			});
-		}
-
-		return data;
-	});
-
-	function onclick(ID: string) {
-		const trueHeroIndex = store.heroData.findIndex((h) => h.ID === ID) ?? 0;
-		const heroIndex =
-			store.filteredHeroData.findIndex((h) => h.ID === ID) ?? 0;
-
-		store.modelState.trueHeroIndex = trueHeroIndex;
-		store.modelState.heroIndex = heroIndex;
+		store.modelState.absoluteHeroIndex = absoluteHeroIndex;
+		store.modelState.relativeHeroIndex = relativeHeroIndex;
 		store.modelState.handleModelChange("", true);
 		open = false;
 	}
@@ -203,16 +182,16 @@
 	});
 </script>
 
-{#snippet viewButton({ ID, src }: { ID: string; src: string })}
+{#snippet viewButton({ id, src }: { id: string; src: string })}
 	<Button
-		onclick={() => onclick(ID)}
+		onclick={() => onclick(id)}
 		variant="ghost"
 		class="cursor-pointer place-self-center flex gap-2 hover:!bg-background w-[4.5rem] !pr-0"
 	>
 		<Icon icon={"mdi:eye"} />
 		<img
 			{src}
-			alt={ID}
+			alt={id}
 			width={36}
 			height={36}
 			class="rounded"
@@ -223,7 +202,9 @@
 
 <div class="absolute bottom-0 left-0 m-4 bg-background rounded-lg">
 	<Dialog.Root bind:open>
-		<Dialog.Trigger class={`${buttonVariants({ variant: "ghost" })} bg-canvas border border-foreground/10`}>
+		<Dialog.Trigger
+			class={`${buttonVariants({ variant: "ghost" })} bg-canvas border border-foreground/10`}
+		>
 			Listing <Key key={keybinds.Listing} />
 		</Dialog.Trigger>
 		<Dialog.Content class="min-w-[80vw] max-w-[80vw]">

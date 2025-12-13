@@ -6,22 +6,21 @@
 	// update the heroIndex when filteredHeroData changes
 	$effect(() => {
 		if (store.filteredHeroData.length > 0) {
-			const ID = store.heroData[store.modelState.trueHeroIndex].ID;
-			store.modelState.heroIndex = store.filteredHeroData.findIndex(
-				(h) => h.ID === ID
-			);
+			const entry = store.modelState.getRelativeEntry();
+			store.modelState.relativeHeroIndex =
+				store.filteredHeroData.findIndex((h) => h.id === entry.id);
 		}
 	});
 
 	// save the heroIndex and trueHeroIndex to localStorage
 	$effect(() => {
 		localStorage.setItem(
-			"trueHeroIndex",
-			JSON.stringify($state.snapshot(store.modelState.trueHeroIndex))
+			"absoluteHeroIndex",
+			JSON.stringify($state.snapshot(store.modelState.absoluteHeroIndex))
 		);
 		localStorage.setItem(
-			"heroIndex",
-			JSON.stringify($state.snapshot(store.modelState.heroIndex))
+			"relativeHeroIndex",
+			JSON.stringify($state.snapshot(store.modelState.relativeHeroIndex))
 		);
 	});
 

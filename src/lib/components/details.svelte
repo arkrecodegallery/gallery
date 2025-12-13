@@ -4,7 +4,10 @@
 	import Key from "./key.svelte";
 	import { keybinds } from "$lib/keybinds";
 
-	const details = $derived(store.heroData[store.modelState.trueHeroIndex]);
+	let entry = $derived.by(() => {
+		() => store.modelState.absoluteHeroIndex;
+		return Object.values(store.map)[store.modelState.absoluteHeroIndex];
+	});
 	const months = [
 		"Jan",
 		"Feb",
@@ -20,9 +23,9 @@
 		"Dec",
 	];
 	const birthday = $derived.by(() => {
-		if (!details.Birthday) return "";
+		if (!entry.details.birthday) return "";
 
-		const split = details.Birthday.split(" / ");
+		const split = entry.details.birthday.split(" / ");
 		if (split.length != 2) return "";
 
 		let monthIndex = 0;
@@ -43,10 +46,10 @@
 <div
 	class="flex flex-col p-4 bg-canvas/80 rounded-br-xl text-foreground absolute top-0 gap-1"
 >
-	<p>{details.ID}: {details.Name}</p>
-	{#if details.Stars}
+	<p>{entry.id}: {entry.details.name}</p>
+	{#if entry.details.stars}
 		<div class="flex gap-1">
-			{#each Array.from({ length: parseInt(details.Stars) }) as _}
+			{#each Array.from({ length: parseInt(entry.details.stars) }) as _}
 				<Icon icon="mdi:star" />
 			{/each}
 		</div>
@@ -55,46 +58,46 @@
 		{#if birthday}
 			<p>{birthday}</p>
 		{/if}
-		{#if details.Constellation}
+		{#if entry.details.constellation}
 			<Icon
-				icon={`mdi:zodiac-${(details.Constellation ?? "").toLocaleLowerCase()}`}
+				icon={`mdi:zodiac-${(entry.details.constellation ?? "").toLocaleLowerCase()}`}
 				height="16"
 				width="16"
 			/>
 		{/if}
-		{#if details.Class}
+		{#if entry.details.job}
 			<img
-				src={`/icons/class/${details.Class}.png`}
-				alt={details.Class}
+				src={`/icons/class/${entry.details.job}.png`}
+				alt={entry.details.job}
 				height="16"
 				width="16"
 				style="filter: brightness(0) saturate(100%) invert(99%) sepia(5%) saturate(0%) hue-rotate(47deg) brightness(103%) contrast(100%);"
 			/>
 		{/if}
-		{#if details.Attribute}
+		{#if entry.details.element}
 			<img
-				src={`/icons/types/${details.Attribute}.png`}
-				alt={details.Attribute}
+				src={`/icons/types/${entry.details.element}.png`}
+				alt={entry.details.element}
 				height="16"
 				width="16"
 			/>
 		{/if}
 	</div>
 	<div>
-		{#if details.Bust}
-			{details.Bust}
-			{#if details.Height || details.Weight}
+		{#if entry.details.cup_size}
+			{entry.details.cup_size}
+			{#if entry.details.height || entry.details.weight}
 				,
 			{/if}
 		{/if}
-		{#if details.Height}
-			{details.Height}
-			{#if details.Weight}
+		{#if entry.details.height}
+			{entry.details.height}
+			{#if entry.details.weight}
 				,
 			{/if}
 		{/if}
-		{#if details.Weight}
-			{details.Weight}
+		{#if entry.details.weight}
+			{entry.details.weight}
 		{/if}
 	</div>
 	<div class="flex gap-2">

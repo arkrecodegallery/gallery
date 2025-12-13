@@ -36,7 +36,7 @@
 	<div class="flex gap-2 items-center bg-canvas/80 py-2 px-4 rounded-xl">
 		<Key
 			key={keybinds.Cutscene}
-			disabled={store.modelState.view !== "skill"}
+			disabled={store.view !== "skill"}
 		/>
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger>
@@ -56,7 +56,7 @@
 				{/each}
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
-		<Key key={keybinds.Touch} disabled={store.modelState.view === "bond"} />
+		<Key key={keybinds.Touch} disabled={store.view === "bond"} />
 	</div>
 	<div class="flex gap-2 items-center bg-canvas/80 py-2 px-4 rounded-xl">
 		<Key key={keybinds.Skin_Decrement} />

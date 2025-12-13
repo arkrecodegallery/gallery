@@ -1,6 +1,5 @@
 import { store } from "./state.svelte";
-import type { Model } from "../cache";
-import type { Animation, ModelView } from "../types";
+import type { Animation, Entry, ModelView } from "../types";
 import type {
 	AnimationState,
 	AnimationStateListener,
@@ -8,17 +7,16 @@ import type {
 	TrackEntry,
 } from "@esotericsoftware/spine-core";
 import { keybinds } from "$lib/keybinds";
-import { addKeydownListener, isLoveLinkView } from "$lib/utils";
+import { addKeydownListener } from "$lib/utils";
 
-const trueHeroIndex = localStorage.getItem("trueHeroIndex");
-const heroIndex = localStorage.getItem("heroIndex");
+function fromLocalStorage(item: string): number {
+	const value = localStorage.getItem(item);
+	return !!value ? JSON.parse(value) : 0;
+}
 
 export class ModelState {
-	trueHeroIndex: number = $state(
-		trueHeroIndex !== null ? JSON.parse(trueHeroIndex) : 0
-	);
-	heroIndex: number = $state(heroIndex !== null ? JSON.parse(heroIndex) : 0);
-	view: ModelView = $state("hero");
+	absoluteHeroIndex: number = $state(fromLocalStorage("absoluteHeroIndex"));
+	relativeHeroIndex: number = $state(fromLocalStorage("relativeHeroIndex"));
 
 	skin: string = $state("LV1");
 	skinLevel: number = 1;
@@ -39,7 +37,7 @@ export class ModelState {
 			this.handleSkinChange(ev.key);
 			this.handleAnimationChange(ev.key);
 			this.handleModelChange(ev.key);
-			this.handleLoveLinkChange(ev.key);
+			// this.handleLoveLinkChange(ev.key);
 		});
 	}
 
@@ -74,21 +72,20 @@ export class ModelState {
 			return;
 		}
 
-		if (this.view === "hero") {
-			this.skin = `LV${this.skinLevel}`;
-		} else if (this.view === "alt") {
-			const attempt = `LV${this.skinLevel}`;
+		const tryApplySkin = (attempt: string, fallback: string) => {
 			if (store.skeletonData?.skins.some((a) => a.name === attempt)) {
 				this.skin = attempt;
 			} else {
-				this.skin = store.skeletonData?.skins[0].name ?? "default";
+				this.skin = store.skeletonData?.skins[0].name ?? fallback;
 			}
-		} else if (this.view === "skill" || this.view === "bond") {
-			if (store.skeletonData?.skins.some((a) => a.name === "LV1")) {
-				this.skin = "LV1";
-			} else {
-				this.skin = store.skeletonData?.skins[0].name ?? "default";
-			}
+		};
+
+		if (store.view === "hero") {
+			this.skin = `LV${this.skinLevel}`;
+		} else if (store.view === "alt") {
+			tryApplySkin(`LV${this.skinLevel}`, "default");
+		} else if (store.view === "skill" || store.view === "bond") {
+			tryApplySkin("LV1", "default");
 		}
 	}
 
@@ -96,23 +93,16 @@ export class ModelState {
 		return this.skin;
 	}
 
-	public getAltSkin(heroData = store.heroData[this.trueHeroIndex]): string {
-		const id = heroData.ID;
-		const alt = `${id}b`;
-		const hasAlt = !!store.skelData[id]?.includes(alt);
-		return hasAlt ? alt : "";
-	}
-
 	handleAnimationChange(key: string) {
 		switch (key) {
 			case keybinds.Cutscene:
-				if (this.view === "skill" || this.view === "bond") {
+				if (store.view === "skill" || store.view === "bond") {
 					this.cutScene = true;
 					this.animationUpdate = true;
 				}
 				break;
 			case keybinds.Touch:
-				if (this.view === "hero" || this.view === "skill") {
+				if (store.view === "hero" || store.view === "skill") {
 					this.touch = true;
 					this.animationUpdate = true;
 				}
@@ -130,7 +120,7 @@ export class ModelState {
 		skeletonData: SkeletonData,
 		animationState: AnimationState
 	): Animation[] {
-		if (this.view === "bond") {
+		if (store.view === "bond") {
 			animationState.clearTracks();
 			const animations: Animation[] = [];
 
@@ -163,7 +153,7 @@ export class ModelState {
 			onlyOne: true,
 		});
 
-		if (this.view === "skill") {
+		if (store.view === "skill") {
 			const possible = [
 				"90_BG",
 				"90_BG2",
@@ -244,129 +234,85 @@ export class ModelState {
 	}
 
 	handleModelChange(key: string, modelSwitch = false, viewSwitch = false) {
-		let prevView: ModelView = this.view;
+		let prevView: ModelView = store.view;
 
 		const first = 0;
-		let prev = this.heroIndex - 1;
+		let prev = this.relativeHeroIndex - 1;
 		for (; prev >= first; prev--) {
-			const id = store.filteredHeroData[prev].ID;
-			if ((store.skelData[id] ?? []).length > 0) {
+			const id = store.filteredHeroData[prev].id;
+			if (!!store.map[id]) {
 				break;
 			}
 		}
 
 		const last = store.filteredHeroData.length - 1;
-		let next = this.heroIndex + 1;
+		let next = this.relativeHeroIndex + 1;
 		for (; next <= last; next++) {
-			const id = store.filteredHeroData[next].ID;
-			if ((store.skelData[id] ?? []).length > 0) {
+			const id = store.filteredHeroData[next].id;
+			if (!!store.map[id]) {
 				break;
 			}
 		}
 
 		switch (key) {
 			case keybinds.Hero_Decrement:
-				this.heroIndex = prev < first ? last : prev;
+				this.relativeHeroIndex = prev < first ? last : prev;
 				modelSwitch = true;
 				break;
 			case keybinds.Hero_Increment:
-				this.heroIndex = next > last ? first : next;
+				this.relativeHeroIndex = next > last ? first : next;
 				modelSwitch = true;
 				break;
 			case keybinds.Hero_View:
-				if (this.view === "hero") {
-					this.view = "alt";
+				if (store.view === "hero") {
+					store.view = "alt";
 				} else {
-					this.view = "hero";
+					store.view = "hero";
 				}
 				viewSwitch = true;
 				break;
 			case keybinds.Skill_View:
-				this.view = "skill";
+				store.view = "skill";
 				viewSwitch = true;
 				break;
 			case keybinds.Bond_View:
-				this.view = "bond";
+				store.view = "bond";
 				viewSwitch = true;
 				break;
 		}
 
+		const entry = store.filteredHeroData[this.relativeHeroIndex];
 		if (modelSwitch) {
-			const id = store.filteredHeroData[this.heroIndex].ID;
-			this.trueHeroIndex =
-				store.heroData.findIndex((h) => h.ID === id) ?? -1;
+			this.absoluteHeroIndex = Object.values(store.map).findIndex(
+				(h) => h.id === entry.id
+			);
 
-			if (this.view === "skill") {
-				if (!this.getSkillModel()) {
-					this.view = "hero";
+			if (store.view === "collection") {
+				if ((entry.collection ?? []).length < this.loveLink) {
+					store.view = "hero";
 				}
-			} else if (this.view === "alt") {
-				if (!this.getAltSkin()) {
-					this.view = "hero";
-				}
-			} else if (this.view === "bond") {
-				if (!this.getBondModel()) {
-					this.view = "hero";
-				}
-			} else if (isLoveLinkView(this.view)) {
-				if (this.getLoveLinks().length < this.loveLink) {
-					this.view = "hero";
+			} else {
+				const bundle = this.getBundle(entry, store.view);
+				if (!bundle) {
+					store.view = "hero";
 				}
 			}
 
 			this.modelUpdate = true;
 			this.skinLevel = 1;
 		} else if (viewSwitch) {
-			if (prevView === this.view) {
+			if (prevView === store.view || store.view === "collection") {
 				// nothing to update
 				return;
 			}
 
-			if (this.view === "hero") {
+			const bundle = this.getBundle(entry, store.view);
+			if (!bundle) {
+				store.view = prevView;
+			} else {
 				this.modelUpdate = true;
-			} else if (this.view === "alt") {
-				if (!this.getAltSkin()) {
-					this.view = "hero";
-				} else {
-					this.modelUpdate = true;
-				}
-			} else if (this.view === "skill") {
-				if (!this.getSkillModel()) {
-					this.view = prevView;
-				} else {
-					this.modelUpdate = true;
-				}
-			} else if (this.view === "bond") {
-				if (!this.getBondModel()) {
-					this.view = prevView;
-				} else {
-					this.modelUpdate = true;
-				}
 			}
 		}
-	}
-
-	getSkillModel(heroData = store.heroData[this.trueHeroIndex]): string {
-		const id = heroData.ID;
-
-		if (store.skelData[id]?.includes(`${id}_S`)) {
-			return `${id}_S`;
-		} else if (store.skelData[id]?.includes(`${id}_b`)) {
-			return `${id}_b`;
-		} else {
-			return "";
-		}
-	}
-
-	getBondModel(heroData = store.heroData[this.trueHeroIndex]) {
-		const bond = store.bondData.find((b) => b.Name === heroData.Name);
-		const id = bond?.ID ?? "";
-		const skels = store.skelData[id] ?? [];
-
-		if (bond && skels.includes(id)) {
-			return bond;
-		}
-		return undefined;
 	}
 
 	public hasModelUpdate() {
@@ -375,101 +321,86 @@ export class ModelState {
 		return update;
 	}
 
-	public getModel(): Model {
-		const id = store.heroData[this.trueHeroIndex].ID;
-
-		if (this.view === "hero" || isLoveLinkView(this.view)) {
-			return {
-				prefix: id,
-				model: id,
-			};
-		} else if (this.view === "alt") {
-			const alt = this.getAltSkin();
-			return {
-				prefix: id,
-				model: alt,
-			};
-		} else if (this.view === "skill") {
-			return {
-				prefix: id,
-				model: this.getSkillModel(),
-			};
-		} else if (this.view === "bond") {
-			const bond = this.getBondModel();
-			if (bond === undefined) {
-				return {
-					prefix: "",
-					model: "",
-				};
-			}
-
-			return {
-				prefix: bond.ID,
-				model: bond.ID,
-			};
-		} else {
-			return {
-				prefix: "",
-				model: "",
-			};
-		}
+	public getAbsoluteEntry(): Entry {
+		return this.entry(this.absoluteHeroIndex);
 	}
 
-	private handleLoveLinkChange(key: string) {
-		const loveLinks = this.getLoveLinks();
-
-		switch (key) {
-			case keybinds.Love_Link_1:
-				if (loveLinks.length >= 1) {
-					this.loveLink = 1;
-					this.view = "loveLink1";
-				}
-				break;
-			case keybinds.Love_Link_2:
-				if (loveLinks.length >= 2) {
-					this.loveLink = 2;
-					this.view = "loveLink2";
-				}
-				break;
-			case keybinds.Love_Link_3:
-				if (loveLinks.length >= 3) {
-					this.loveLink = 3;
-					this.view = "loveLink3";
-				}
-				break;
-		}
+	public getRelativeEntry(): Entry {
+		return this.entry(this.relativeHeroIndex);
 	}
 
-	public getLoveLinks(
-		heroData = store.heroData[this.trueHeroIndex]
-	): string[] {
-		const name = heroData.Name;
-		const entry = store.loveLinkData.find((ll) => ll.Name === name);
-		if (!entry) return [];
+	// private handleLoveLinkChange(key: string) {
+	// 	const loveLinks = this.getLoveLinks();
 
-		const result = [];
-		if (entry["Image 1"]) result.push(entry["Image 1"]);
-		if (entry["Image 2"]) result.push(entry["Image 2"]);
-		if (entry["Image 3"]) result.push(entry["Image 3"]);
-		return result;
-	}
+	// 	switch (key) {
+	// 		case keybinds.Love_Link_1:
+	// 			if (loveLinks.length >= 1) {
+	// 				this.loveLink = 1;
+	// 				store.view = "loveLink1";
+	// 			}
+	// 			break;
+	// 		case keybinds.Love_Link_2:
+	// 			if (loveLinks.length >= 2) {
+	// 				this.loveLink = 2;
+	// 				store.view = "loveLink2";
+	// 			}
+	// 			break;
+	// 		case keybinds.Love_Link_3:
+	// 			if (loveLinks.length >= 3) {
+	// 				this.loveLink = 3;
+	// 				store.view = "loveLink3";
+	// 			}
+	// 			break;
+	// 	}
+	// }
+
+	// public getLoveLinks(
+	// 	heroData = store.heroData[this.trueHeroIndex]
+	// ): string[] {
+	// 	const name = heroData.Name;
+	// 	const entry = store.loveLinkData.find((ll) => ll.Name === name);
+	// 	if (!entry) return [];
+
+	// 	const result = [];
+	// 	if (entry["Image 1"]) result.push(entry["Image 1"]);
+	// 	if (entry["Image 2"]) result.push(entry["Image 2"]);
+	// 	if (entry["Image 3"]) result.push(entry["Image 3"]);
+	// 	return result;
+	// }
 
 	public viewDisabled(view: ModelView): boolean {
+		const entry = this.entry(this.relativeHeroIndex);
+
 		switch (view) {
 			case "hero":
 				return false; // always available
 			case "alt":
-				return this.getAltSkin() === "";
+				return !entry.alt;
 			case "skill":
-				return this.getSkillModel() === "";
+				return !entry.skill;
 			case "bond":
-				return this.getBondModel() === undefined;
-			case "loveLink1":
-				return this.getLoveLinks().length < 1;
-			case "loveLink2":
-				return this.getLoveLinks().length < 2;
-			case "loveLink3":
-				return this.getLoveLinks().length < 3;
+				return !entry.bond;
+			case "collection":
+				return !entry.collection;
+		}
+	}
+
+	entry(index: number): Entry {
+		return Object.values(store.map)[index];
+	}
+
+	getBundle(entry: Entry, view: ModelView) {
+		switch (view) {
+			case "hero":
+				return entry.hero;
+			case "alt":
+				return entry.alt;
+			case "skill":
+				return entry.skill;
+			case "bond":
+				return entry.bond;
+			default:
+				throw new Error("Unreachable code");
 		}
 	}
 }

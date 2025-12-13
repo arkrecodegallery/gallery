@@ -81,10 +81,9 @@ export class CameraController {
 	private wheel(delta: number) {
 		const zoomSpeed = -0.001;
 		const prevZoom = this.camera.zoom;
-		const newZoom = Math.min(
-			Math.max(prevZoom - delta * zoomSpeed, 0.05),
-			this.options.maxZoom
-		);
+		const newZoom = Math.max(prevZoom - delta * zoomSpeed, 0.05);
+			// this.options.maxZoom
+		// );
 
 		const mouseWorldBefore = this.camera.screenToWorld(
 			new Vector3(this.lastX, this.lastY),

@@ -1,6 +1,6 @@
 import { AssetManager } from "$lib/cache";
 import { ModelState } from "./modelState.svelte";
-import type { BondData, Data, HeroData, LoveLinkData } from "$lib/types";
+import type { Entry, Map, ModelView } from "$lib/types";
 import type { SkeletonData } from "@esotericsoftware/spine-core";
 import type {
 	ColumnFiltersState,
@@ -11,8 +11,24 @@ import type {
 const menuStates = localStorage.getItem("menuStates");
 
 export class Store {
+	// data
+	map: Map = $state({});
+
+	// model
+	view: ModelView = $state("hero");
+	assetManager: AssetManager = $state(new AssetManager());
+	skeletonData: SkeletonData | undefined = $state();
+	modelState: ModelState = $state(new ModelState());
+
+	// renderer
+	_canvasElement: HTMLCanvasElement | undefined = $state();
+	get canvasElement(): HTMLCanvasElement {
+		if (!this._canvasElement) throw new Error("Canvas Element Undefined");
+		return this._canvasElement;
+	}
+
 	// table
-	table: Table<Data> | undefined = $state(undefined);
+	table: Table<Entry> | undefined = $state(undefined);
 	sorting = $state<SortingState>([]);
 	columnFilters = $state<ColumnFiltersState>([]);
 	menuStates: Record<
@@ -25,29 +41,11 @@ export class Store {
 		}
 	> = $state(menuStates !== null ? JSON.parse(menuStates) : {});
 
-	get filteredHeroData(): HeroData[] {
+	get filteredHeroData(): Entry[] {
 		return (
 			this.table?.getRowModel().rows.map((row) => row.original) ??
-			this.heroData
+			Object.values(this.map)
 		);
-	}
-
-	// data
-	heroData: HeroData[] = $state([]);
-	bondData: BondData[] = $state([]);
-	skelData: Record<string, string[]> = $state({});
-	loveLinkData: LoveLinkData[] = $state([]);
-
-	// model
-	skeletonData: SkeletonData | undefined = $state();
-	modelState: ModelState = $state(new ModelState());
-	assetManager: AssetManager = $state(new AssetManager());
-
-	// renderer
-	_canvasElement: HTMLCanvasElement | undefined = $state();
-	get canvasElement(): HTMLCanvasElement {
-		if (!this._canvasElement) throw new Error("Canvas Element Undefined");
-		return this._canvasElement;
 	}
 }
 

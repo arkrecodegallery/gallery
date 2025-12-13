@@ -1,47 +1,45 @@
 import type { SpineCanvas } from "@esotericsoftware/spine-webgl";
-
-export interface Model {
-	prefix: string;
-	model: string;
-}
+import { store } from "$lib/hooks/state.svelte";
+import type { Entry } from "./types";
 
 export class AssetManager {
-	cache: Model[] = [];
+	binary: string = "";
+	atlas: string = "";
 
-	public loadModel(canvas: SpineCanvas, prefix: string, model: string) {
-		const entry: Model = { prefix, model };
-		this.insertCache(canvas, entry);
-		canvas.assetManager.loadBinary(this.path(entry, ".skel"));
-		canvas.assetManager.loadTextureAtlas(this.path(entry, ".atlas"));
+	public loadModel(canvas: SpineCanvas, entry: Entry) {
+		let assets = this.getAssets(entry);
+
+		this.binary = this.path(assets[0]);
+		this.atlas = this.path(assets[1]);
+
+		canvas.assetManager.loadBinary(this.binary);
+		canvas.assetManager.loadTextureAtlas(this.atlas);
 	}
 
-	insertCache(canvas: SpineCanvas, entry: Model) {
-		if (this.cache.length > 100) {
-			this.popCache(canvas);
+	getAssets(entry: Entry): [string, string] {
+		switch (store.view) {
+			case "hero":
+				return [entry.hero.skel, entry.hero.atlas];
+			case "alt":
+				return [entry.alt!.skel, entry.alt!.atlas];
+			case "skill":
+				return [entry.skill!.skel, entry.skill!.atlas];
+			case "bond":
+				return [entry.bond!.skel, entry.bond!.atlas];
+			default: // collection should trigger a model refresh
+				return [entry.hero.skel, entry.hero.atlas];
 		}
-
-		this.cache.unshift(entry);
-	}
-
-	popCache(canvas: SpineCanvas) {
-		const old = this.cache.pop();
-		if (!old) return;
-
-		// FIXME
-		// canvas.assetManager.remove(this.path(old, ""));
 	}
 
 	public getSkeleton(canvas: SpineCanvas) {
-		const path = this.path(this.cache[0], ".skel");
-		return canvas.assetManager.require(path);
+		return canvas.assetManager.require(this.binary);
 	}
 
 	public getAtlas(canvas: SpineCanvas) {
-		const path = this.path(this.cache[0], ".atlas");
-		return canvas.assetManager.require(path);
+		return canvas.assetManager.require(this.atlas);
 	}
 
-	path(entry: Model, ext: string): string {
-		return `/spines/${entry.prefix}/${entry.model}${ext}`;
+	path(name: string): string {
+		return `/gallery-data/containers/${name}`;
 	}
 }

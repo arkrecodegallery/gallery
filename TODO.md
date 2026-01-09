@@ -5,8 +5,7 @@
 -   Figure out unused AXXXX files
 
 -   Disable BG animations when cutscene is going
-
--   Need to be able to see 800s skels
+	
 -   Need to somehow incorperate bonds that are only images
 
 -   Fix the cache

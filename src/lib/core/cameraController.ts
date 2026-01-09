@@ -1,5 +1,5 @@
 import { Input, OrthoCamera, Vector3 } from "@esotericsoftware/spine-webgl";
-import { clamp } from "./utils";
+import { clamp } from "../utils";
 
 interface Options {
 	maxZoom: number;
@@ -82,7 +82,7 @@ export class CameraController {
 		const zoomSpeed = -0.001;
 		const prevZoom = this.camera.zoom;
 		const newZoom = Math.max(prevZoom - delta * zoomSpeed, 0.05);
-			// this.options.maxZoom
+		// this.options.maxZoom
 		// );
 
 		const mouseWorldBefore = this.camera.screenToWorld(

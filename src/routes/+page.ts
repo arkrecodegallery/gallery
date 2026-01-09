@@ -1,4 +1,4 @@
-import type { Map } from "$lib/types";
+import type { Map } from "$lib/core/types";
 import { store } from "$lib/hooks/state.svelte";
 
 export const load = async ({ fetch }) => {

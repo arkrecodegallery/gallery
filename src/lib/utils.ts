@@ -1,6 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
-import type { ModelView } from "./types";
+import type { ModelView } from "./core/types";
 import type { Row, Table } from "@tanstack/table-core";
 import { store } from "./hooks/state.svelte";
 
@@ -55,7 +55,9 @@ export function addKeydownListener(callback: (ev: KeyboardEvent) => void) {
 
 export function clearAllFilters() {
 	store.table?.setSorting([]);
-	store.table?.getAllColumns().forEach((col) => col.setFilterValue(undefined));
+	store.table
+		?.getAllColumns()
+		.forEach((col) => col.setFilterValue(undefined));
 	Object.values(store.menuStates).forEach((state) => {
 		state.value = "";
 		state.nonEmpty = false;

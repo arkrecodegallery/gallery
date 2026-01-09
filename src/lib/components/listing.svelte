@@ -13,9 +13,9 @@
 	import Key from "./key.svelte";
 	import Icon from "@iconify/svelte";
 	import { onMount } from "svelte";
-	import { keybinds } from "$lib/keybinds";
+	import { keybinds } from "$lib/core/keybinds";
 	import Toggle from "./ui/toggle/toggle.svelte";
-	import type { Entry } from "$lib/types";
+	import type { Entry } from "$lib/core/types";
 
 	const _showDetails = localStorage.getItem("showDetails");
 	const _showModels = localStorage.getItem("showModels");

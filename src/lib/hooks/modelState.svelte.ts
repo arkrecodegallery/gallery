@@ -1,12 +1,12 @@
 import { store } from "./state.svelte";
-import type { Animation, Entry, ModelView } from "../types";
+import type { Animation, Entry, ModelView } from "../core/types";
 import type {
 	AnimationState,
 	AnimationStateListener,
 	SkeletonData,
 	TrackEntry,
 } from "@esotericsoftware/spine-core";
-import { keybinds } from "$lib/keybinds";
+import { keybinds } from "$lib/core/keybinds";
 import { addKeydownListener } from "$lib/utils";
 
 function fromLocalStorage(item: string): number {

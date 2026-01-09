@@ -2,7 +2,7 @@
 	import { store } from "$lib/hooks/state.svelte";
 	import Icon from "@iconify/svelte";
 	import Key from "./key.svelte";
-	import { keybinds } from "$lib/keybinds";
+	import { keybinds } from "$lib/core/keybinds";
 
 	let entry = $derived.by(() => {
 		() => store.modelState.absoluteHeroIndex;

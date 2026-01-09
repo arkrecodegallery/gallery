@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { SpineCanvas } from "@esotericsoftware/spine-webgl";
-	import { App } from "$lib/app";
+	import { App } from "$lib/core/app";
 	import { store } from "$lib/hooks/state.svelte";
 	import Details from "$lib/components/details.svelte";
 	import Tabs from "$lib/components/tabs.svelte";

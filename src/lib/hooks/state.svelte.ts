@@ -1,6 +1,6 @@
-import { AssetManager } from "$lib/cache";
+import { AssetManager } from "$lib/core/cache";
 import { ModelState } from "./modelState.svelte";
-import type { Entry, Map, ModelView } from "$lib/types";
+import type { Entry, Map, ModelView } from "$lib/core/types";
 import type { SkeletonData } from "@esotericsoftware/spine-core";
 import type {
 	ColumnFiltersState,

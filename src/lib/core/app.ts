@@ -13,7 +13,7 @@ import {
 	type SpineCanvasApp,
 } from "@esotericsoftware/spine-webgl";
 import { store } from "$lib/hooks/state.svelte";
-import { CameraController } from "./cameraController";
+import { CameraController } from "$lib/core/cameraController";
 
 export class App implements SpineCanvasApp {
 	skeletonData!: SkeletonData;

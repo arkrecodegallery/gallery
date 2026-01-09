@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { keybinds } from "$lib/keybinds";
+	import { keybinds } from "$lib/core/keybinds";
 	import { store } from "$lib/hooks/state.svelte";
 	import Key from "$lib/components/key.svelte";
 	import Select from "$lib/components/select.svelte";

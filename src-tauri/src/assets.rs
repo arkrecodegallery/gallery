@@ -4,7 +4,7 @@ use quick_xml::reader::Reader;
 use std::collections::HashMap;
 use std::str;
 
-use crate::constants::{DIR_ASSETS, DIR_GALLERY_DATA, FILE_ASSETS_XML};
+use crate::constants::{DIR_ASSETS, FILE_ASSETS_XML};
 
 pub struct AssetLookup {
     pub map: HashMap<String, Vec<String>>,
@@ -17,7 +17,7 @@ pub struct AssetLookup {
 }
 
 impl AssetLookup {
-    pub fn new() -> Result<Self> {
+    pub fn new(dir_gallery_data: String) -> Result<Self> {
         let mut assets = Self {
             map: HashMap::new(),
             duplicates: HashMap::new(),
@@ -27,7 +27,7 @@ impl AssetLookup {
             in_asset: false,
         };
 
-        let xml = format!("{}{}", DIR_GALLERY_DATA, FILE_ASSETS_XML);
+        let xml = format!("{}{}", dir_gallery_data, FILE_ASSETS_XML);
         assets
             .parse_xml(&xml)
             .with_context(|| format!("unable to parse xml file '{}'", xml))?;

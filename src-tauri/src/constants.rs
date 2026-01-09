@@ -10,7 +10,6 @@ pub const MIN_HERO_ID: usize = 1;
 pub const MAX_HERO_ID: usize = 999;
 
 declare_consts! {
-    DIR_GALLERY_DATA = "../static/gallery-data/",
     FILE_ASSETS_XML = "assets.xml",
     DIR_CONTAINERS = "containers/",
     FILE_MAP = "map.json",

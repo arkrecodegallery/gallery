@@ -1,10 +1,18 @@
 import type { SpineCanvas } from "@esotericsoftware/spine-webgl";
 import { store } from "$lib/hooks/state.svelte";
 import type { Entry } from "./types";
+import { ASSET_PROTOCOL, DIR_CONTAINERS } from "./constants";
+import { convertFileSrc } from "@tauri-apps/api/core";
 
 export class AssetManager {
+	base: string = "";
+
 	binary: string = "";
 	atlas: string = "";
+
+	constructor(basePath: string) {
+		this.base = basePath;
+	}
 
 	public loadModel(canvas: SpineCanvas, entry: Entry) {
 		let assets = this.getAssets(entry);
@@ -40,6 +48,6 @@ export class AssetManager {
 	}
 
 	path(name: string): string {
-		return `/gallery-data/containers/${name}`;
+		return `${ASSET_PROTOCOL}/${this.base}/${DIR_CONTAINERS}/${name}`;
 	}
 }

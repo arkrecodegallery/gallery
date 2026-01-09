@@ -16,7 +16,7 @@ export class Store {
 
 	// model
 	view: ModelView = $state("hero");
-	assetManager: AssetManager = $state(new AssetManager());
+	assetManager: AssetManager = $state() as AssetManager;
 	skeletonData: SkeletonData | undefined = $state();
 	modelState: ModelState = $state(new ModelState());
 

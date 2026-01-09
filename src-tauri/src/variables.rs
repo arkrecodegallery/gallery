@@ -3,7 +3,7 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 
 use crate::constants::{
-    DIR_ASSETS, DIR_CONTAINERS, DIR_GALLERY_DATA, DIR_STATIC_DATA, FILE_ARTIFACT, FILE_ENG,
+    DIR_ASSETS, DIR_CONTAINERS, DIR_STATIC_DATA, FILE_ARTIFACT, FILE_ENG,
     FILE_ROLE, FILE_ROLE_COLLECTION, FILE_SKILL,
 };
 
@@ -13,21 +13,21 @@ pub struct VariableLookup {
 }
 
 impl VariableLookup {
-    pub fn new() -> Result<Self> {
+    pub fn new(dir_gallery_data: String) -> Result<Self> {
         let mut files = HashMap::new();
         let mut variables = HashMap::new();
 
         for file in [FILE_ARTIFACT, FILE_ROLE, FILE_ROLE_COLLECTION, FILE_SKILL] {
-            let path = Self::get_file_path(file);
+            let path = Self::get_file_path(dir_gallery_data.clone(), file);
             files.insert(file.to_string(), CSVFile::new(path, &mut variables)?);
         }
 
-        Self::resolve_variables(&mut variables)?;
+        Self::resolve_variables(dir_gallery_data, &mut variables)?;
         Ok(Self { files, variables })
     }
 
-    fn resolve_variables(variables: &mut HashMap<String, String>) -> Result<()> {
-        let path = Self::get_file_path(FILE_ENG);
+    fn resolve_variables(dir_gallery_data: String, variables: &mut HashMap<String, String>) -> Result<()> {
+        let path = Self::get_file_path(dir_gallery_data, FILE_ENG);
         let bytes: Vec<u8> = std::fs::read(&path)?;
         let content = String::from_utf8_lossy(&bytes);
         let mut reader = csv::ReaderBuilder::new()
@@ -57,10 +57,10 @@ impl VariableLookup {
         Ok(())
     }
 
-    fn get_file_path(file: &str) -> String {
+    fn get_file_path(dir_gallery_data: String, file: &str) -> String {
         format!(
             "{}{}{}{}{}",
-            DIR_GALLERY_DATA, DIR_CONTAINERS, DIR_ASSETS, DIR_STATIC_DATA, file
+            dir_gallery_data, DIR_CONTAINERS, DIR_ASSETS, DIR_STATIC_DATA, file
         )
     }
 

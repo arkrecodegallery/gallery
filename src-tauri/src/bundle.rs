@@ -5,23 +5,31 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    constants::{DIR_CONTAINERS, DIR_GALLERY_DATA},
+    constants::{DIR_CONTAINERS},
     entry::Entry,
 };
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Bundle {
+    dir_gallery_data: String,
     skel: String,
     atlas: String,
 }
 
 impl Bundle {
+    pub fn new(dir_gallery_data: String) -> Self {
+        Self {
+            dir_gallery_data,
+            ..Self::default()
+        }
+    }
+
     pub fn is_valid(&self) -> Result<bool> {
         Ok(!self.skel.is_empty() && !self.atlas.is_empty() && self.valid_mat()?)
     }
 
     fn valid_mat(&self) -> Result<bool> {
-        let atlas_path = format!("{}{}{}", DIR_GALLERY_DATA, DIR_CONTAINERS, self.atlas);
+        let atlas_path = format!("{}{}{}", &self.dir_gallery_data, DIR_CONTAINERS, self.atlas);
         let mat_name = self
             .get_atlas_mat(&atlas_path)
             .with_context(|| format!("could not read atlas '{}'", atlas_path))?;
@@ -58,10 +66,10 @@ pub struct BundleProcessor<'a> {
 }
 
 impl<'a> BundleProcessor<'a> {
-    pub fn new(alt_regex: Option<&'a Regex>) -> Self {
+    pub fn new(dir_gallery_data: String, alt_regex: Option<&'a Regex>) -> Self {
         Self {
-            main: Bundle::default(),
-            alt: Bundle::default(),
+            main: Bundle::new(dir_gallery_data.clone()),
+            alt: Bundle::new(dir_gallery_data),
             alt_regex,
         }
     }

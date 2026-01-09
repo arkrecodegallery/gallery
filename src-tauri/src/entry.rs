@@ -31,13 +31,15 @@ pub struct Entry {
 
 impl Entry {
     pub fn new(
+        dir_gallery_data: String,
         id: &str,
         assets: &AssetLookup,
         variables: &VariableLookup,
         rules: &Rules,
     ) -> Result<Option<Self>> {
         Ok(
-            if let Some((hero, alt)) = Self::init_hero(id, assets, rules)? {
+            if let Some((hero, alt)) = Self::init_hero(dir_gallery_data.clone(), id, assets, rules)?
+            {
                 Some(Self {
                     id: id.to_string(),
                     icons: Icons::default(),
@@ -45,8 +47,8 @@ impl Entry {
 
                     hero,
                     alt,
-                    skill: Self::init_skill(id, assets)?,
-                    bond: Self::init_bond(id, assets, variables)?,
+                    skill: Self::init_skill(dir_gallery_data.clone(), id, assets)?,
+                    bond: Self::init_bond(dir_gallery_data.clone(), id, assets, variables)?,
 
                     collection: None,
                 })
@@ -57,6 +59,7 @@ impl Entry {
     }
 
     fn init_hero(
+        dir_gallery_data: String,
         id: &str,
         assets: &AssetLookup,
         rules: &Rules,
@@ -64,7 +67,7 @@ impl Entry {
         let assets = Self::collect_hero_assets(id, assets, rules);
         let alt_regex = rules.get_alt(id).and_then(|p| Regex::new(p).ok());
 
-        let mut processor = BundleProcessor::new(alt_regex.as_ref());
+        let mut processor = BundleProcessor::new(dir_gallery_data, alt_regex.as_ref());
         processor.process_assets(assets);
         Ok(processor.get_both()?)
     }
@@ -88,16 +91,21 @@ impl Entry {
         }
     }
 
-    fn init_skill(id: &str, assets: &AssetLookup) -> Result<Option<Bundle>> {
+    fn init_skill(
+        dir_gallery_data: String,
+        id: &str,
+        assets: &AssetLookup,
+    ) -> Result<Option<Bundle>> {
         let prefix = format!("Hero/{}/{}_S/", id, id);
         let assets = assets.get_by_prefix(&prefix);
 
-        let mut processor = BundleProcessor::new(None);
+        let mut processor = BundleProcessor::new(dir_gallery_data, None);
         processor.process_assets(assets);
         Ok(processor.get_main()?)
     }
 
     fn init_bond(
+        dir_gallery_data: String,
         id: &str,
         assets: &AssetLookup,
         variables: &VariableLookup,
@@ -106,7 +114,7 @@ impl Entry {
             let prefix = format!("CG/{}/{}/", bond, bond);
             let assets = assets.get_by_prefix(&prefix);
 
-            let mut processor = BundleProcessor::new(None);
+            let mut processor = BundleProcessor::new(dir_gallery_data, None);
             processor.process_assets(assets);
             return Ok(processor.get_main()?);
         }
@@ -142,8 +150,6 @@ impl Entry {
         // note the true asset name from the assets list CG/AXXXX/Img/
         // only AXXXX worth the effort
         // push corrected path to collection
-
-        
 
         Vec::new()
     }

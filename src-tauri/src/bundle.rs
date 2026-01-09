@@ -11,7 +11,9 @@ use crate::{
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub struct Bundle {
+    #[serde(skip_serializing)]
     dir_gallery_data: String,
+    
     skel: String,
     atlas: String,
 }

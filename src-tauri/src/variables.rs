@@ -140,4 +140,8 @@ impl CSVFile {
     pub fn get_columns(&self) -> &HashMap<String, usize> {
         &self.columns
     }
+
+    pub fn get_data(&self) -> &HashMap<String, Vec<String>> {
+        &self.data
+    }
 }

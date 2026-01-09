@@ -62,6 +62,7 @@ RoleCollection.txt contains every reference to every image the character is in
 		- Characters can have more than 1 bond
 		- Reimagine the UI?
 			- Press a character for view, then number for precise "model" within that?
+			- Maybe a carousel-like view where it shows the number of choices on the tab
 
 - H060 
     - Might have broken in recent update, but `Assets/Game/Cutscene/H060_CutScene/Spine` contains the only valid copy of the mat file

@@ -6,9 +6,6 @@ macro_rules! declare_consts {
     }
 }
 
-pub const MIN_HERO_ID: usize = 1;
-pub const MAX_HERO_ID: usize = 999;
-
 declare_consts! {
     FILE_ASSETS_XML = "assets.xml",
     DIR_CONTAINERS = "containers/",

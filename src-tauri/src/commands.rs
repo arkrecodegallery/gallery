@@ -1,7 +1,8 @@
 use crate::assets::AssetLookup;
-use crate::constants::{FILE_MAP, MAX_HERO_ID, MIN_HERO_ID};
+use crate::constants::FILE_MAP;
 use crate::entry::Entry;
 use crate::rules::Rules;
+use crate::utils::get_hero_ids;
 use crate::variables::VariableLookup;
 
 use anyhow::{Context, Result};
@@ -26,12 +27,14 @@ fn _generate_map(dir_gallery_data: String) -> Result<()> {
     let rules = Rules::new();
 
     // create map from lookup
+    let ids = get_hero_ids(&variables, &rules)?;
     let mut map = BTreeMap::<String, Entry>::new();
-    for i in MIN_HERO_ID..=MAX_HERO_ID {
-        let id = format!("H{:0>3}", i);
+    for id in ids.iter() {
         let entry = Entry::new(dir_gallery_data.clone(), &id, &assets, &variables, &rules)?;
         if let Some(e) = entry {
-            map.insert(id, e);
+            map.insert(id.clone(), e);
+        } else {
+            println!("failed with {}", id)
         }
     }
 
@@ -52,6 +55,7 @@ mod tests {
 
     #[test]
     fn runner() {
-        _generate_map("".to_owned()).unwrap();
+        let dir_gallery_data = std::env::var("TEST_DATA_PATH").unwrap();
+        _generate_map(dir_gallery_data).unwrap();
     }
 }

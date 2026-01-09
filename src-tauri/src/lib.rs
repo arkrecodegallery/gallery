@@ -5,6 +5,7 @@ mod constants;
 mod entry;
 mod rules;
 mod variables;
+mod utils;
 
 use crate::commands::generate_map;
 

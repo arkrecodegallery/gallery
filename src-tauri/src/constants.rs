@@ -10,6 +10,7 @@ declare_consts! {
     FILE_ASSETS_XML = "assets.xml",
     DIR_CONTAINERS = "containers/",
     FILE_MAP = "map.json",
+    FILE_MISSING = "missing.json",
 
     DIR_ASSETS = "Assets/Game/",
     DIR_STATIC_DATA = "StaticData/",
@@ -30,6 +31,9 @@ declare_consts! {
     DETAIL_HEIGHT = "Height",
     DETAIL_WEIGHT = "Weight",
 
-    FIELD_DYNAMIC = "DynamicField",
-    CONNECT_ARTIFACT = "ConnectArtifact",
+    FIELD_ID = "ID",
+    FIELD_ROLE_ID = "RoleID",
+    FIELD_PREFAB = "Prefab",
+    FIELD_ROLE_MOTIONS = "RoleMotions",
+    FIELD_DYNAMIC = "DynamicField"
 }

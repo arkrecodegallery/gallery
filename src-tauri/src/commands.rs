@@ -1,11 +1,13 @@
 use crate::assets::AssetLookup;
-use crate::constants::FILE_MAP;
+use crate::constants::{FILE_MAP, FILE_MISSING};
 use crate::entry::Entry;
+use crate::missing::Missing;
 use crate::rules::Rules;
 use crate::utils::get_hero_ids;
 use crate::variables::VariableLookup;
 
 use anyhow::{Context, Result};
+use serde::Serialize;
 
 use std::collections::BTreeMap;
 use std::fs::File;
@@ -25,27 +27,37 @@ fn _generate_map(dir_gallery_data: String) -> Result<()> {
     let assets = AssetLookup::new(dir_gallery_data.clone())?;
     let variables = VariableLookup::new(dir_gallery_data.clone())?;
     let rules = Rules::new();
+    let mut missing = Missing::new(&assets, &variables);
 
     // create map from lookup
     let ids = get_hero_ids(&variables, &rules)?;
     let mut map = BTreeMap::<String, Entry>::new();
-    for id in ids.iter() {
-        let entry = Entry::new(dir_gallery_data.clone(), &id, &assets, &variables, &rules)?;
+    for id in ids {
+        let entry = Entry::new(dir_gallery_data.clone(), &id, &assets, &variables, &rules, &mut missing)?;
         if let Some(e) = entry {
             map.insert(id.clone(), e);
-        } else {
-            println!("failed with {}", id)
         }
     }
+    missing.cleanup(&dir_gallery_data);
 
-    // write map file for use by frontend
-    let map_path = format!("{}{}", dir_gallery_data, FILE_MAP);
+    // write map files for use by frontend
+    write_json(&dir_gallery_data, FILE_MAP, &map)?;
+    write_json(&dir_gallery_data, FILE_MISSING, &missing)?;
+
+    Ok(())
+}
+
+fn write_json<T: ?Sized + Serialize>(
+    dir_gallery_data: &str,
+    file_name: &str,
+    json: &T,
+) -> anyhow::Result<()> {
+    let map_path = format!("{}{}", dir_gallery_data, file_name);
     let file = File::create(map_path.clone())
         .with_context(|| format!("unable to create file '{}'", map_path))?;
     let writer = BufWriter::new(file);
-    serde_json::to_writer_pretty(writer, &map)
+    serde_json::to_writer_pretty(writer, json)
         .with_context(|| format!("failed to write to file '{}'", map_path))?;
-
     Ok(())
 }
 

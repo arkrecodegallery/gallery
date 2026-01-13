@@ -14,10 +14,14 @@ macro_rules! collection {
 pub struct Rules {
     // heros that have an abnormal file path
     hero: HashMap<&'static str, Vec<&'static str>>,
-    // define the schema for the alt so it is caught
+    // define the pattern for the alt so it is caught
     alt: HashMap<&'static str, &'static str>,
+    // names not defined in tables but understood through inference
+    names: HashMap<&'static str, &'static str>,
     // extra heros not recorded in the role file
     extra: Vec<&'static str>,
+    // patterns for images withing the role collection file
+    collection: Vec<&'static str>,
 }
 
 impl Rules {
@@ -31,18 +35,29 @@ impl Rules {
                 "H118" => ".*_B(?:\\.|$)",
                 "H120" => ".*_B(?:\\.|$)",
             },
+            names: collection! {
+                "H800" => "Mirabelle",
+                "H801" => "Mina",
+                "H802" => "Teddy",
+            },
             extra: vec![
                 "H800",
                 "H801",
-
-                // the following don't have skins, have weird hit boxes, etc., so I don't include them
-                // they are recorded here for posterity only, feel free to uncomment
-                // "H803",
-                // "H804",
-                // "H805",
-                // "H806",
-                // "H807",
-                // "H808",
+                "H802",
+                "H803",
+                "H804",
+                "H805",
+                "H806",
+                "H807",
+                "H808",
+            ],
+            collection: vec![
+                "CG\\/A",
+                // the following are too irregular and therefore difficult to parse
+                // honestly not worth the effort compared to the other files
+                // "CG\\/P",
+                // "CG\\/Carnival",
+                // "CG\\/Story"
             ],
         }
     }
@@ -57,5 +72,9 @@ impl Rules {
 
     pub fn get_extra(&self) -> Vec<&str> {
         self.extra.clone()
+    }
+
+    pub fn get_collection(&self) -> Vec<&str> {
+        self.collection.clone()
     }
 }

@@ -51,10 +51,6 @@ https://hex-rays.com/pricing?section=individuals
 
 ## Notes
 
-_LoveTalk (seems odd, look into removing _LoveTalk suffix and Icon_AXXXX_LoveTalk images as they are very consistent and can help fill in holes)
-
-RoleCollection.txt contains every reference to every image the character is in
-
 - All bonds are not recorded in RoleCollection.txt
 	- Some are exclusive to Artifact.txt
 	- 3&4 star artifacts do not have animations, only pictures
@@ -72,22 +68,19 @@ RoleCollection.txt contains every reference to every image the character is in
 	- e.g. Hero/H004/H004_DialogTV.prefab
 		- Was the only correct copy of the hero, should be moved to Hero/H004/H004/
 
-- H112 bond incorrect
-	- May need to do additional lookup in Artifact.txt for the correct model
-		- ID is indeed A0162, but model is for some reason A0165
-	- This case was correct in RoleCollection.txt but not Role.txt
-	- Some bonds even missing from RoleCollection.txt, for no real reason
-		- Probably most efficient to make 
+- Discrepancies appear between Role.txt and RoleCollection.txt in reference to bonds, and either may be correct or incorrect
+	- Only solution is a rule really
+	- Could be helped out by the missing.json flagging bonds with conflicting entries
+	- H613 A0413
+	- H173 A0338
 
-- Make record of missing models
-	- Iterating over heros in Role.txt, which should exist but do not or have errors
-		- Ideally have separate show for skel does not exist vs just mat does not exist
-	- Any hero that should have a skill but doesn't (4 or more stars)
-	- Any hero that should have a bond but doesn't
-	- Any hero who's collection image is missing (e.g. CG/Story files)
-	- Any hero who has a listing in RoleCollection that I don't catch
-		- e.g. I automatically exclude skels assuming that they are only bonds that are already viewable elsewhere, if there is a skel that is in the collection but not caught by me, it should be flagged
-	- Any artifact that isn't attached to a hero or viewable in some way
+- Fake bonds
+	- Bonds that aren't animated but instead a collection of images
+	- A0054 displays this trait
+		- look on wiki to see more that this applies to
+	- _1, _2, etc. are a good indication
+		- also has a role_motions entry
+	- sometimes in odd locations
 
 - Other files of interest
 	- AudioClip

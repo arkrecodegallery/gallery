@@ -3,9 +3,10 @@ mod bundle;
 mod commands;
 mod constants;
 mod entry;
+mod missing;
 mod rules;
-mod variables;
 mod utils;
+mod variables;
 
 use crate::commands::generate_map;
 

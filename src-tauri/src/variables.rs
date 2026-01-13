@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use anyhow::{Context, Result};
 
 use crate::constants::{
-    DIR_ASSETS, DIR_CONTAINERS, DIR_STATIC_DATA, FILE_ARTIFACT, FILE_ENG,
-    FILE_ROLE, FILE_ROLE_COLLECTION, FILE_SKILL,
+    DIR_ASSETS, DIR_CONTAINERS, DIR_STATIC_DATA, FILE_ARTIFACT, FILE_ENG, FILE_ROLE,
+    FILE_ROLE_COLLECTION, FILE_SKILL,
 };
 
 pub struct VariableLookup {
@@ -26,7 +26,10 @@ impl VariableLookup {
         Ok(Self { files, variables })
     }
 
-    fn resolve_variables(dir_gallery_data: String, variables: &mut HashMap<String, String>) -> Result<()> {
+    fn resolve_variables(
+        dir_gallery_data: String,
+        variables: &mut HashMap<String, String>,
+    ) -> Result<()> {
         let path = Self::get_file_path(dir_gallery_data, FILE_ENG);
         let bytes: Vec<u8> = std::fs::read(&path)?;
         let content = String::from_utf8_lossy(&bytes);
@@ -137,8 +140,11 @@ impl CSVFile {
         Some(row[*key].to_string())
     }
 
-    pub fn get_columns(&self) -> &HashMap<String, usize> {
-        &self.columns
+    pub fn get_column_index(&self, column: &str) -> Option<usize> {
+        self.columns
+            .iter()
+            .find(|(col, _)| *col == column)
+            .map(|(_, index)| *index)
     }
 
     pub fn get_data(&self) -> &HashMap<String, Vec<String>> {

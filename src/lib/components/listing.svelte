@@ -31,6 +31,11 @@
 				open = !open;
 			}
 		});
+		addKeydownListener((ev) => {
+			if (ev.key === keybinds.Hide_UI) {
+				hideUI();
+			}
+		});
 	});
 
 	const columns: ColumnDef<Entry>[] = $derived.by(() => {
@@ -135,8 +140,8 @@
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "loveLinks",
-						header: "Love Links",
+						accessorKey: "collection",
+						header: "Collection",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
@@ -176,6 +181,16 @@
 		};
 	}
 
+	function hideUI() {
+		if (store.uiState === "visible") {
+			store.uiState = "minimal";
+		} else if (store.uiState === "minimal") {
+			store.uiState = "hidden";
+		} else {
+			store.uiState = "visible";
+		}
+	}
+
 	$effect(() => {
 		localStorage.setItem("showDetails", JSON.stringify(showDetails));
 		localStorage.setItem("showModels", JSON.stringify(showModels));
@@ -200,7 +215,12 @@
 	</Button>
 {/snippet}
 
-<div class="absolute bottom-0 left-0 m-4 bg-background rounded-lg">
+<div
+	class="absolute bottom-0 left-0 m-4 rounded-lg flex flex-col gap-2 z-10 {store.uiState !==
+	'visible'
+		? 'hidden'
+		: ''}"
+>
 	<Dialog.Root bind:open>
 		<Dialog.Trigger
 			class={`${buttonVariants({ variant: "ghost" })} bg-canvas border border-foreground/10`}
@@ -229,6 +249,14 @@
 			></div>
 		</Dialog.Content>
 	</Dialog.Root>
+	<Button
+		onclick={hideUI}
+		class="{buttonVariants({
+			variant: 'ghost',
+		})} bg-canvas border border-foreground/10 text-foreground"
+	>
+		Hide UI <Key key={keybinds.Hide_UI} />
+	</Button>
 </div>
 
 <div id="datatable-container" class="hidden">

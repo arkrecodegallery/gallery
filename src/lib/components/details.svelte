@@ -41,10 +41,49 @@
 
 		return `${months[monthIndex - 1]} ${split[1]}`;
 	});
+	const height = $derived.by(() => {
+		if (!entry.details.height) return "";
+
+		try {
+			let height = entry.details.height;
+			if (!height.endsWith(" cm")) throw "";
+			height = height.substring(0, height.length - 3);
+
+			const cm = Number(height);
+			if (Number.isNaN(cm)) throw "";
+
+			const total = Math.round(cm / 2.54);
+			const feet = Math.floor(total / 12);
+			const inch = Math.floor(total % 12);
+			return `${feet.toFixed(0)}' ${inch.toFixed(0)}\"`;
+		} catch {
+			return entry.details.height;
+		}
+	});
+	const weight = $derived.by(() => {
+		if (!entry.details.weight) return "";
+
+		try {
+			let weight = entry.details.weight;
+			if (!weight.endsWith(" kg")) throw "";
+			weight = weight.substring(0, weight.length - 3);
+
+			const kg = Number(weight);
+			if (Number.isNaN(kg)) throw "";
+
+			const total = Math.round(kg * 2.205);
+			return `${total.toFixed(0)} lb`;
+		} catch {
+			return entry.details.weight;
+		}
+	});
 </script>
 
 <div
-	class="flex flex-col p-4 bg-canvas/80 rounded-br-xl text-foreground absolute top-0 gap-1"
+	class="flex flex-col p-4 bg-canvas/80 rounded-br-xl text-foreground absolute top-0 gap-1 z-10 {store.uiState !==
+	'visible'
+		? 'hidden'
+		: ''}"
 >
 	<p>{entry.id}: {entry.details.name}</p>
 	{#if entry.details.stars}
@@ -91,17 +130,26 @@
 			{/if}
 		{/if}
 		{#if entry.details.height}
-			{entry.details.height}
+			{height}
 			{#if entry.details.weight}
 				,
 			{/if}
 		{/if}
 		{#if entry.details.weight}
-			{entry.details.weight}
+			{weight}
 		{/if}
 	</div>
 	<div class="flex gap-2">
 		<div><Key key={keybinds.Hero_Decrement} /> -</div>
 		<div><Key key={keybinds.Hero_Increment} /> +</div>
 	</div>
+</div>
+
+<div
+	class="text-muted-foreground absolute p-4 top-0 gap-1 z-10 {store.uiState !==
+	'minimal'
+		? 'hidden'
+		: ''}"
+>
+	<p>{entry.id}: {entry.details.name}</p>
 </div>

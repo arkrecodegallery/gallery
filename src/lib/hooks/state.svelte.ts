@@ -1,6 +1,6 @@
 import { AssetManager } from "$lib/core/cache";
 import { ModelState } from "./modelState.svelte";
-import type { Entry, Map, ModelView } from "$lib/core/types";
+import type { Entry, Map, ModelView, UIState } from "$lib/core/types";
 import type { SkeletonData } from "@esotericsoftware/spine-core";
 import type {
 	ColumnFiltersState,
@@ -15,6 +15,8 @@ export class Store {
 	map: Map = $state({});
 
 	// model
+	uiState: UIState = $state("visible");
+	loading: boolean = $state(true);
 	view: ModelView = $state("hero");
 	assetManager: AssetManager = $state() as AssetManager;
 	skeletonData: SkeletonData | undefined = $state();

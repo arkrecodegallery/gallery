@@ -4,13 +4,13 @@
 	import { store } from "$lib/hooks/state.svelte";
 	import Key from "./key.svelte";
 
-	const views: ModelView[] = ["hero", "alt", "skill", "bond", "collection"];
+	const views: ModelView[] = ["hero", "skill", "bond", "collection"];
 	const nameMap: Record<ModelView, string> = {
-		hero: "Skin",
-		alt: "Alt Skin",
+		hero: "Hero",
+		alt: "Err",
 		skill: "Skill",
 		bond: "Bond",
-		collection: "Collections",
+		collection: "Collection",
 	};
 
 	function getKey(view: ModelView): string {
@@ -25,38 +25,131 @@
 			case "bond":
 				return keybinds.Bond_View;
 			case "collection":
-				return keybinds.Love_Link_1;
+				return keybinds.Collection_View;
+		}
+	}
+
+	function getCount(view: ModelView): number {
+		const entry = store.modelState.getRelativeEntry();
+
+		switch (view) {
+			case "hero":
+				return entry.alt ? 2 : 1;
+			case "skill":
+				return entry.skill ? 1 : 0;
+			case "bond":
+				return entry.bond ? entry.bond.length : 0;
+			case "collection":
+				return entry.collection ? entry.collection.length : 0;
+			default:
+				return 0;
+		}
+	}
+
+	function getIndex(view: ModelView): number {
+		switch (view) {
+			case "hero":
+				return store.view === "hero" ? 0 : 1;
+			case "skill":
+				return 0;
+			case "bond":
+				return 0;
+			case "collection":
+				return store.modelState.cycleIndex;
+			default:
+				return 0;
 		}
 	}
 </script>
 
-<div class="absolute bottom-0 right-0 text-foreground mb-4 flex flex-col gap-4">
+<div
+	class="absolute bottom-0 right-0 text-foreground mb-4 flex flex-col gap-4 z-10 {store.uiState !==
+	'visible'
+		? 'hidden'
+		: ''}"
+>
 	{#each views as view}
 		{@const disabled = store.modelState.viewDisabled(view)}
 		{@const name = nameMap[view]}
 		{@const key = getKey(view)}
-		{#if store.view === view}
+		{@const count = getCount(view)}
+		{@const index = getIndex(view)}
+
+		{#if store.view === view || (store.view === "alt" && view === "hero")}
 			<div
-				class="bg-canvas/80 border border-foreground/50 border-r-black/0 px-4 gap-4 py-2 rounded-s-lg items-center"
+				class="bg-canvas/80 border border-foreground/50 border-r-black/0 px-4 py-2 rounded-s-lg flex flex-col"
 			>
-				{name}
+				<div class="w-full flex justify-between items-center gap-4">
+					<p>{name}</p>
+					<Key class="text-right" {key} />
+				</div>
+				{@render carousel(count, index, true)}
 			</div>
 		{:else if disabled}
 			<div
-				class="bg-canvas/70 border border-black/0 px-4 gap-4 py-2 rounded-s-lg flex justify-between text-border items-center"
+				class="bg-canvas/70 border border-black/0 px-4 py-2 rounded-s-lg text-disabled-foreground flex flex-col"
 			>
-				<p>{name}</p>
-				<Key class="text-right" disabled {key} />
+				<div class="w-full flex justify-between items-center gap-4">
+					<p>{name}</p>
+					<Key class="text-right" {key} disabled />
+				</div>
+				{@render carousel(count, index, false)}
 			</div>
 		{:else}
 			<div
-				class="bg-canvas/80 border border-foreground/10 px-4 gap-4 py-2 rounded-s-lg flex justify-between items-center"
+				class="bg-canvas/80 border border-foreground/10 px-4 py-2 rounded-s-lg flex flex-col"
 			>
-				<p>{name}</p>
-				{#if (view === "alt" && store.view === "hero") || view !== "alt"}
+				<div class="w-full flex justify-between items-center gap-4">
+					<p>{name}</p>
 					<Key class="text-right" {key} />
-				{/if}
+				</div>
+				{@render carousel(count, index, false)}
 			</div>
 		{/if}
 	{/each}
 </div>
+
+<div
+	class="absolute bottom-0 right-0 text-foreground m-4 flex flex-col gap-1 w-20 z-10 {store.uiState !==
+	'minimal'
+		? 'hidden'
+		: ''}"
+>
+	{#each views as view}
+		{@const disabled = store.modelState.viewDisabled(view)}
+		{@const count = getCount(view)}
+		{@const index = getIndex(view)}
+
+		{#if store.view === view || (store.view === "alt" && view === "hero")}
+			{@render carousel(count, index, true)}
+		{:else if disabled}
+			{@render carousel(count, index, false)}
+		{:else}
+			{@render carousel(count, index, false)}
+		{/if}
+	{/each}
+</div>
+
+{#snippet carousel(count: number, index: number, active: boolean)}
+	<div class="flex gap-1 pt-1">
+		{#if count === 0}
+			<div class="h-1 w-full bg-disabled rounded-full"></div>
+		{:else if count === 1}
+			<div
+				class="h-1 w-full {active
+					? 'bg-foreground'
+					: 'bg-muted-foreground/50'} rounded-full"
+			></div>
+		{:else}
+			{#each Array.from({ length: count }) as _, c}
+				<div
+					class="h-1 w-full {active
+						? index === c
+							? 'bg-foreground'
+							: 'bg-muted-foreground/50'
+						: 'bg-muted-foreground/50'} rounded-full {c}"
+				></div>
+			{/each}
+		{/if}
+	</div>
+{/snippet}

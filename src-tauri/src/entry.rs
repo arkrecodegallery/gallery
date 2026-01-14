@@ -25,7 +25,7 @@ pub struct Entry {
     alt: Option<Bundle>,
     #[serde(skip_serializing_if = "Option::is_none")]
     skill: Option<Bundle>,
-    #[serde(skip_serializing_if = "Option::is_none")]
+    #[serde(skip_serializing_if = "is_none_or_empty")]
     bond: Option<Vec<Bundle>>, // edge case, needs animations
 
     #[serde(skip_serializing_if = "is_none_or_empty")]

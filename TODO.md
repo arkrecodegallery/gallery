@@ -2,13 +2,9 @@
 
     -   need to fix the animations so you can see the whole thing
 
--   Figure out unused AXXXX files
-
 -   Disable BG animations when cutscene is going
 	
 -   Need to somehow incorperate bonds that are only images
-
--   Fix the cache
 
 -   Fix Camera Controls
 
@@ -51,22 +47,14 @@ https://hex-rays.com/pricing?section=individuals
 
 ## Notes
 
-- All bonds are not recorded in RoleCollection.txt
-	- Some are exclusive to Artifact.txt
-	- 3&4 star artifacts do not have animations, only pictures
-		- How to display this?
-		- Characters can have more than 1 bond
-		- Reimagine the UI?
-			- Press a character for view, then number for precise "model" within that?
-			- Maybe a carousel-like view where it shows the number of choices on the tab
+- Fix table and icons
 
-- H060 
-    - Might have broken in recent update, but `Assets/Game/Cutscene/H060_CutScene/Spine` contains the only valid copy of the mat file
-
-- DialogTV
-	- If a hero has no mat, chances are they are in some weird promo stage? 
-	- e.g. Hero/H004/H004_DialogTV.prefab
-		- Was the only correct copy of the hero, should be moved to Hero/H004/H004/
+- Import latest data
+	- Use adb to rule out errors
+	- Don't have open app during to mitigate lock files
+	- Make rules for data that needs to be copied / moved
+		- H060 in Cutscene?
+		- H004 in DialogTV?
 
 - Discrepancies appear between Role.txt and RoleCollection.txt in reference to bonds, and either may be correct or incorrect
 	- Only solution is a rule really

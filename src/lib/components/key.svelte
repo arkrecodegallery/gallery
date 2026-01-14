@@ -10,6 +10,6 @@
 	const { key, disabled, ...rest }: Props = $props();
 </script>
 
-<Kbd.Root class={disabled ? "bg-disabled text-disabled-foreground" : ""}>
+<Kbd.Root {...rest} class={disabled ? "bg-disabled text-disabled-foreground" : ""}>
 	{key}
 </Kbd.Root>

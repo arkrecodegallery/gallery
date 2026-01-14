@@ -91,8 +91,8 @@ export class App implements SpineCanvasApp {
 		this.skeleton.y = -(offset.y + size.y / 2);
 		this.skeleton.updateWorldTransform();
 
-		const screenWidth = window.screen.width;
-		const screenHeight = window.screen.height;
+		const screenWidth = window.innerWidth;
+		const screenHeight = window.innerHeight;
 		const scale =
 			Math.max(size.x / screenWidth, size.y / screenHeight) * 1.1;
 

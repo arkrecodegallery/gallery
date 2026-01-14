@@ -31,16 +31,18 @@
 </script>
 
 <div
-	class="absolute top-0 right-0 text-foreground p-4 flex flex-col gap-4 text-right items-end"
+	class="absolute top-0 right-0 text-foreground p-4 flex flex-col gap-4 text-right items-end z-10 {store.uiState !== "visible"
+		? 'hidden'
+		: ''}"
 >
 	<div class="flex gap-2 items-center bg-canvas/80 py-2 px-4 rounded-xl">
-		<Key
-			key={keybinds.Cutscene}
-			disabled={store.view !== "skill"}
-		/>
+		<Key key={keybinds.Cutscene} disabled={store.view !== "skill"} />
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger>
-				<Button variant="outline" class="!bg-canvas border-foreground/10">
+				<Button
+					variant="outline"
+					class="!bg-canvas border-foreground/10"
+				>
 					Animations
 					<ChevronDown class="size-4 opacity-50" />
 				</Button>

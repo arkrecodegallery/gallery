@@ -9,7 +9,7 @@ export interface Entry {
 	hero: Bundle;
 	alt?: Bundle;
 	skill?: Bundle;
-	bond?: Bundle;
+	bond?: Bundle[];
 
 	collection?: string[];
 }
@@ -44,3 +44,5 @@ export type Animation = {
 	animationName: string;
 	loop: boolean;
 };
+
+export type UIState = "visible" | "minimal" | "hidden";

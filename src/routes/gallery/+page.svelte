@@ -7,7 +7,7 @@
 	import Tabs from "$lib/components/tabs.svelte";
 	import Controls from "$lib/components/controls.svelte";
 	import Table from "$lib/components/listing.svelte";
-	import LoveLink from "$lib/components/loveLink.svelte";
+	import Collection from "$lib/components/collection.svelte";
 	import Effects from "$lib/hooks/effects.svelte";
 
 	onMount(() => {
@@ -24,7 +24,7 @@
 <Controls />
 <Tabs />
 <Table />
-<LoveLink />
+<Collection />
 <canvas bind:this={store._canvasElement}></canvas>
 
 <style>
@@ -32,5 +32,6 @@
 		width: 100%;
 		height: 100%;
 		display: block;
+		z-index: 0;
 	}
 </style>

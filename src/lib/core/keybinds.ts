@@ -8,8 +8,7 @@ export const keybinds = {
 	Hero_View: "z",
 	Skill_View: "x",
 	Bond_View: "c",
-	Love_Link_1: "1",
-	Love_Link_2: "2",
-	Love_Link_3: "3",
+	Collection_View: "v",
 	Listing: "f",
+	Hide_UI: "r",
 } as const;

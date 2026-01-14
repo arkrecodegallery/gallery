@@ -28,8 +28,7 @@ export class ModelState {
 	animations: Record<string, number> = $state({});
 	animationUpdate: boolean = false;
 
-	loveLink: number = $state(1);
-
+	cycleIndex: number = $state(0);
 	modelUpdate: boolean = false;
 
 	constructor() {
@@ -279,6 +278,10 @@ export class ModelState {
 				store.view = "bond";
 				viewSwitch = true;
 				break;
+			case keybinds.Collection_View:
+				store.view = "collection";
+				viewSwitch = true;
+				break;
 		}
 
 		const entry = store.filteredHeroData[this.relativeHeroIndex];
@@ -288,7 +291,7 @@ export class ModelState {
 			);
 
 			if (store.view === "collection") {
-				if ((entry.collection ?? []).length < this.loveLink) {
+				if ((entry.collection ?? []).length === 0) {
 					store.view = "hero";
 				}
 			} else {
@@ -296,12 +299,26 @@ export class ModelState {
 				if (!bundle) {
 					store.view = "hero";
 				}
+				store.loading = true;
 			}
 
 			this.modelUpdate = true;
 			this.skinLevel = 1;
+			this.cycleIndex = 0;
 		} else if (viewSwitch) {
-			if (prevView === store.view || store.view === "collection") {
+			if (store.view === "collection") {
+				if ((entry.collection ?? []).length === 0) {
+					store.view = prevView;
+				} else if (prevView === "collection") {
+					this.cycleIndex += 1;
+					if (this.cycleIndex === entry.collection!.length) {
+						this.cycleIndex = 0;
+					}
+				}
+
+				store.loading = true;
+				return;
+			} else if (prevView === store.view) {
 				// nothing to update
 				return;
 			}
@@ -311,6 +328,7 @@ export class ModelState {
 				store.view = prevView;
 			} else {
 				this.modelUpdate = true;
+				this.cycleIndex = 0;
 			}
 		}
 	}

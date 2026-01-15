@@ -1,8 +1,8 @@
 export const keybinds = {
-	Skin_Decrement: "w",
-	Skin_Increment: "s",
-	Hero_Decrement: "a",
-	Hero_Increment: "d",
+	Skin_Decrement: "a",
+	Skin_Increment: "d",
+	Hero_Decrement: "w",
+	Hero_Increment: "s",
 	Cutscene: "q",
 	Touch: "e",
 	Hero_View: "z",

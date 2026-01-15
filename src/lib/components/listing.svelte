@@ -8,6 +8,9 @@
 	import {
 		addKeydownListener,
 		clearAllFilters,
+		fileName,
+		imperialHeight,
+		imperialWeight,
 		nonEmptyFilterFn,
 	} from "$lib/utils";
 	import Key from "./key.svelte";
@@ -45,18 +48,19 @@
 				cell: ({ row }) => {
 					const id = row.original.id;
 					const entry = store.map[id];
-					const src = `/icons/hero_icons/${entry.icons.hero ?? "__No_Icon__.png"}`;
+					const src = `/icons/hero_icons/__No_Icon__.png`;
 					return renderSnippet(viewButton, { id, src });
 				},
 			},
 			{
-				accessorKey: "Name",
+				id: "Name",
+				accessorFn: (row) => row.details.name,
 				header: "Name",
 				filterFn: nonEmptyFilterFn,
 				enableColumnFilter: true,
 			},
 			{
-				accessorKey: "ID",
+				accessorKey: "id",
 				header: "ID",
 				filterFn: nonEmptyFilterFn,
 				enableColumnFilter: true,
@@ -65,87 +69,101 @@
 
 		if (showDetails) {
 			cols.push(
-				...[
+				...([
 					{
-						accessorKey: "Stars",
+						id: "Stars",
+						accessorFn: (row) => row.details.stars,
 						header: "Stars",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "Attribute",
-						header: "Attribute",
+						id: "Element",
+						accessorFn: (row) => row.details.element,
+						header: "Element",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "Class",
-						header: "Class",
+						id: "Job",
+						accessorFn: (row) => row.details.job,
+						header: "Job",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "Constellation",
+						id: "Constellation",
+						accessorFn: (row) => row.details.constellation,
 						header: "Constellation",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "Birthday",
+						id: "Birthday",
+						accessorFn: (row) => row.details.birthday,
 						header: "Birthday",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "Bust",
-						header: "Bust",
+						id: "Cup Size",
+						accessorFn: (row) => row.details.cup_size,
+						header: "Cup Size",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "Height",
+						id: "Height",
+						accessorFn: (row) => imperialHeight(row),
 						header: "Height",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "Weight",
+						id: "Weight",
+						accessorFn: (row) => imperialWeight(row),
 						header: "Weight",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
-				]
+				] satisfies ColumnDef<Entry>[])
 			);
 		}
 
 		if (showModels) {
 			cols.push(
-				...[
+				...([
 					{
-						accessorKey: "alt",
+						id: "alt",
+						accessorFn: (row) => fileName(row.alt?.atlas),
 						header: "Alt",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "skill",
+						id: "skill",
+						accessorFn: (row) => fileName(row.skill?.atlas),
 						header: "Skill",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "bond",
+						id: "bond",
+						accessorFn: (row) =>
+							row.bond?.map((b) => fileName(b.atlas)),
 						header: "Bond",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
 					{
-						accessorKey: "collection",
+						id: "collection",
+						accessorFn: (row) =>
+							row.collection?.map((c) => fileName(c)),
 						header: "Collection",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
 					},
-				]
+				] satisfies ColumnDef<Entry>[])
 			);
 		}
 

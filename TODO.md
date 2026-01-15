@@ -47,7 +47,7 @@ https://hex-rays.com/pricing?section=individuals
 
 ## Notes
 
-- Fix table and icons
+- Fix table icons
 
 - Import latest data
 	- Use adb to rule out errors

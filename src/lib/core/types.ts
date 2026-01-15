@@ -32,7 +32,6 @@ export interface Details {
 }
 
 export interface Bundle {
-	mat: string;
 	skel: string;
 	atlas: string;
 }

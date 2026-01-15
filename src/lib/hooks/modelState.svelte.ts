@@ -343,63 +343,20 @@ export class ModelState {
 		return this.entry(this.absoluteHeroIndex);
 	}
 
-	public getRelativeEntry(): Entry {
-		return this.entry(this.relativeHeroIndex);
-	}
-
-	// private handleLoveLinkChange(key: string) {
-	// 	const loveLinks = this.getLoveLinks();
-
-	// 	switch (key) {
-	// 		case keybinds.Love_Link_1:
-	// 			if (loveLinks.length >= 1) {
-	// 				this.loveLink = 1;
-	// 				store.view = "loveLink1";
-	// 			}
-	// 			break;
-	// 		case keybinds.Love_Link_2:
-	// 			if (loveLinks.length >= 2) {
-	// 				this.loveLink = 2;
-	// 				store.view = "loveLink2";
-	// 			}
-	// 			break;
-	// 		case keybinds.Love_Link_3:
-	// 			if (loveLinks.length >= 3) {
-	// 				this.loveLink = 3;
-	// 				store.view = "loveLink3";
-	// 			}
-	// 			break;
-	// 	}
-	// }
-
-	// public getLoveLinks(
-	// 	heroData = store.heroData[this.trueHeroIndex]
-	// ): string[] {
-	// 	const name = heroData.Name;
-	// 	const entry = store.loveLinkData.find((ll) => ll.Name === name);
-	// 	if (!entry) return [];
-
-	// 	const result = [];
-	// 	if (entry["Image 1"]) result.push(entry["Image 1"]);
-	// 	if (entry["Image 2"]) result.push(entry["Image 2"]);
-	// 	if (entry["Image 3"]) result.push(entry["Image 3"]);
-	// 	return result;
-	// }
-
 	public viewDisabled(view: ModelView): boolean {
-		const entry = this.entry(this.relativeHeroIndex);
+		const entry = this.getAbsoluteEntry();
 
 		switch (view) {
 			case "hero":
 				return false; // always available
 			case "alt":
-				return !entry.alt;
+				return entry.alt === undefined;
 			case "skill":
-				return !entry.skill;
+				return entry.skill === undefined;
 			case "bond":
-				return !entry.bond;
+				return entry.bond === undefined;
 			case "collection":
-				return !entry.collection;
+				return entry.collection === undefined;
 		}
 	}
 

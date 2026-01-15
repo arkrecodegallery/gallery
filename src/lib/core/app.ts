@@ -21,7 +21,7 @@ export class App implements SpineCanvasApp {
 	animation!: AnimationState;
 
 	loadAssets(canvas: SpineCanvas): void {
-		const entry = store.modelState.getRelativeEntry();
+		const entry = store.modelState.getAbsoluteEntry();
 		store.assetManager.loadModel(canvas, entry);
 	}
 

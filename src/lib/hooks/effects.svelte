@@ -6,7 +6,7 @@
 	// update the heroIndex when filteredHeroData changes
 	$effect(() => {
 		if (store.filteredHeroData.length > 0) {
-			const entry = store.modelState.getRelativeEntry();
+			const entry = store.modelState.getAbsoluteEntry();
 			store.modelState.relativeHeroIndex =
 				store.filteredHeroData.findIndex((h) => h.id === entry.id);
 		}

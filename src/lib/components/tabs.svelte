@@ -14,7 +14,6 @@
 	};
 
 	function getKey(view: ModelView): string {
-		// TODO only skin or alk skin should be highlighted
 		switch (view) {
 			case "hero":
 				return keybinds.Hero_View;
@@ -30,7 +29,7 @@
 	}
 
 	function getCount(view: ModelView): number {
-		const entry = store.modelState.getRelativeEntry();
+		const entry = store.modelState.getAbsoluteEntry();
 
 		switch (view) {
 			case "hero":

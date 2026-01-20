@@ -2,7 +2,7 @@ use crate::assets::AssetLookup;
 use crate::bundle::{Bundle, BundleProcessor};
 use crate::constants::{
     DETAIL_BIRTHDAY, DETAIL_CONSTELLATION, DETAIL_CUP_SIZE, DETAIL_ELEMENT, DETAIL_HEIGHT,
-    DETAIL_JOB, DETAIL_NAME, DETAIL_STARS, DETAIL_WEIGHT, FIELD_PREFAB, FIELD_ROLE_ID,
+    DETAIL_JOB, DETAIL_NAME, DETAIL_STARS, DETAIL_WEIGHT, DIR_ASSETS, FIELD_PREFAB, FIELD_ROLE_ID,
     FIELD_ROLE_MOTIONS, FILE_ROLE, FILE_ROLE_COLLECTION,
 };
 use crate::missing::{Missing, MissingKey};
@@ -26,7 +26,7 @@ pub struct Entry {
     #[serde(skip_serializing_if = "Option::is_none")]
     skill: Option<Bundle>,
     #[serde(skip_serializing_if = "is_none_or_empty")]
-    bond: Option<Vec<Bundle>>, // edge case, needs animations
+    bond: Option<Vec<(Option<Bundle>, Vec<String>)>>,
 
     #[serde(skip_serializing_if = "is_none_or_empty")]
     collection: Option<Vec<String>>,
@@ -47,7 +47,7 @@ impl Entry {
             {
                 Some(Self {
                     id: id.to_string(),
-                    icons: Icons::default(),
+                    icons: Self::init_icons(id.to_string()),
                     details: Details::new(id.to_string(), variables),
 
                     hero,
@@ -126,24 +126,31 @@ impl Entry {
         variables: &VariableLookup,
         rules: &Rules,
         missing: &mut Missing,
-    ) -> Result<Option<Vec<Bundle>>> {
+    ) -> Result<Option<Vec<(Option<Bundle>, Vec<String>)>>> {
         if let Some(bonds) = Self::find_role_values(id, variables, rules, true) {
-            let mut result = Vec::<Bundle>::new();
+            let mut result = Vec::<(Option<Bundle>, Vec<String>)>::new();
 
-            for bond in bonds {
+            for (bond, motions) in bonds {
                 missing.record_cg(bond.to_string());
 
-                let prefix = format!("CG/{}/{}/", bond, bond);
-                let assets = assets.get_by_prefix(&prefix);
+                if motions.starts_with("CG") {
+                    if let Some(stills) = Self::find_still(id, assets, &bond, &motions, missing) {
+                        result.push((None, stills));
+                    }
+                } else {
+                    let prefix = format!("CG/{}/{}/", bond, bond);
+                    let assets = assets.get_by_prefix(&prefix);
 
-                let mut processor =
-                    BundleProcessor::new(dir_gallery_data.to_string(), None, MissingKey::Bond);
-                processor.process_assets(assets, missing);
+                    let mut processor =
+                        BundleProcessor::new(dir_gallery_data.to_string(), None, MissingKey::Bond);
+                    processor.process_assets(assets, missing);
 
-                if let Ok(Some(bundle)) =
-                    processor.get_main_and_log(id.to_string(), bond, missing, true)
-                {
-                    result.push(bundle);
+                    if let Ok(Some(bundle)) =
+                        processor.get_main_and_log(id.to_string(), bond, missing, true)
+                    {
+                        let motions: Vec<String> = motions.split("~").map(str::to_string).collect();
+                        result.push((Some(bundle), motions));
+                    }
                 }
             }
 
@@ -151,6 +158,43 @@ impl Entry {
         }
 
         Ok(None)
+    }
+
+    fn find_still(
+        id: &str,
+        assets: &AssetLookup,
+        bond: &str,
+        motions: &str,
+        missing: &mut Missing,
+    ) -> Option<Vec<String>> {
+        let spl: Vec<&str> = motions.split("~").collect();
+
+        let prefix = format!("CG/{}", bond);
+        let assets = assets.get_by_prefix(&prefix);
+
+        let mut result = Vec::<String>::new();
+        'outer: for motion in spl {
+            if let Some(num) = motion.split("_").last() {
+                let target = format!("{}_{}", bond, num);
+                for (container, files) in &assets {
+                    for file in files {
+                        if *file == target {
+                            result.push(Self::build_file_path(container, &format!("{}.png", file)));
+                            continue 'outer;
+                        }
+                    }
+                }
+            }
+
+            missing.insert_log(
+                id.to_string(),
+                MissingKey::Bond,
+                format!("Missing still '{}' (id '{}')", motion, bond),
+            );
+            return None;
+        }
+
+        Some(result)
     }
 
     fn init_collection(
@@ -162,7 +206,7 @@ impl Entry {
     ) -> Option<Vec<String>> {
         if let Some(collection) = Self::find_role_values(id, variables, rules, false) {
             let mut result = Vec::<String>::new();
-            for cg in collection {
+            for (cg, _) in collection {
                 missing.record_cg(cg.to_string());
                 if let Some(path) = Self::find_collection(id, &cg, assets, missing) {
                     result.push(path);
@@ -222,7 +266,7 @@ impl Entry {
         variables: &VariableLookup,
         rules: &Rules,
         find_motions: bool,
-    ) -> Option<Vec<String>> {
+    ) -> Option<Vec<(String, String)>> {
         let regex: Vec<Regex> = rules
             .get_collection()
             .iter()
@@ -235,13 +279,14 @@ impl Entry {
         let motions_index = collection.get_column_index(FIELD_ROLE_MOTIONS)?;
 
         let data = collection.get_data();
-        let mut result = Vec::<(String, String)>::new();
+        let mut result = Vec::<(String, String, String)>::new();
         for (collection_id, cols) in data {
-            if cols[id_index] == id && (cols[motions_index] != "") == find_motions {
+            let motion = &cols[motions_index];
+            if cols[id_index] == id && (motion != "") == find_motions {
                 let val = cols[prefab_index].to_string();
                 for reg in &regex {
                     if reg.is_match(&val) {
-                        result.push((collection_id.to_string(), val));
+                        result.push((collection_id.to_string(), val, motion.to_string()));
                         break;
                     }
                 }
@@ -252,10 +297,22 @@ impl Entry {
         Some(
             result
                 .iter()
-                .filter_map(|e| e.1.split("/").nth(1))
-                .map(str::to_string)
+                .map(|e| (e.1.split("/").nth(1), e.2.clone()))
+                .filter(|e| e.0.is_some())
+                .map(|e| (e.0.unwrap().to_string(), e.1))
                 .collect(),
         )
+    }
+
+    fn init_icons(id: String) -> Icons {
+        // TODO
+        // check rules for corrections (some need manual corrections)
+        // then check for if this icon exists
+        // if not, replace with No_Icon.png && log as missing
+
+        Icons {
+            hero: format!("{}Hero/{}/Img/Icon_Head_S_{}.png", DIR_ASSETS, id, id),
+        }
     }
 
     pub fn build_file_path(container: &str, file_name: &str) -> String {

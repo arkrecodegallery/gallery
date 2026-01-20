@@ -47,7 +47,9 @@ https://hex-rays.com/pricing?section=individuals
 
 ## Notes
 
-- Fix table icons
+- Still Bond animations
+	- Change them to be the images and allow quick changing
+	- If too much work, just disable entirely (it's confusing)
 
 - Import latest data
 	- Use adb to rule out errors

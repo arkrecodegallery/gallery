@@ -9,7 +9,7 @@ export interface Entry {
 	hero: Bundle;
 	alt?: Bundle;
 	skill?: Bundle;
-	bond?: Bundle[];
+	bond?: [Bundle | undefined, string[]][];
 
 	collection?: string[];
 }
@@ -24,7 +24,6 @@ export interface Details {
 	element: string;
 	job: string;
 	constellation: string;
-	group: string;
 	cup_size: string;
 	birthday: string;
 	height: string;

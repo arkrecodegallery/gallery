@@ -11,4 +11,5 @@ export const keybinds = {
 	Collection_View: "v",
 	Listing: "f",
 	Hide_UI: "r",
+	Home: "h",
 } as const;

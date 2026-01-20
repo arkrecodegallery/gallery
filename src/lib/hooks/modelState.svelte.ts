@@ -1,5 +1,5 @@
 import { store } from "./state.svelte";
-import type { Animation, Entry, ModelView } from "../core/types";
+import type { Animation, Bundle, Entry, ModelView } from "../core/types";
 import type {
 	AnimationState,
 	AnimationStateListener,
@@ -8,6 +8,7 @@ import type {
 } from "@esotericsoftware/spine-core";
 import { keybinds } from "$lib/core/keybinds";
 import { addKeydownListener } from "$lib/utils";
+import { Animate } from "$lib/core/animate";
 
 function fromLocalStorage(item: string): number {
 	const value = localStorage.getItem(item);
@@ -29,6 +30,7 @@ export class ModelState {
 	animationUpdate: boolean = false;
 
 	cycleIndex: number = $state(0);
+	bondAnimationIndex: number = $state(0);
 	modelUpdate: boolean = false;
 
 	constructor() {
@@ -36,7 +38,6 @@ export class ModelState {
 			this.handleSkinChange(ev.key);
 			this.handleAnimationChange(ev.key);
 			this.handleModelChange(ev.key);
-			// this.handleLoveLinkChange(ev.key);
 		});
 	}
 
@@ -104,6 +105,15 @@ export class ModelState {
 				if (store.view === "hero" || store.view === "skill") {
 					this.touch = true;
 					this.animationUpdate = true;
+				} else if (store.view === "bond") {
+					const entry = this.getAbsoluteEntry();
+					const tuple = entry.bond![this.cycleIndex];
+					if (tuple[0] === null) {
+						this.bondAnimationIndex += 1;
+						if (this.bondAnimationIndex === tuple[1].length) {
+							this.bondAnimationIndex = 0;
+						}
+					}
 				}
 				break;
 		}
@@ -120,6 +130,7 @@ export class ModelState {
 		animationState: AnimationState
 	): Animation[] {
 		if (store.view === "bond") {
+			const _ = new Animate(skeletonData.animations);
 			animationState.clearTracks();
 			const animations: Animation[] = [];
 
@@ -306,7 +317,27 @@ export class ModelState {
 			this.skinLevel = 1;
 			this.cycleIndex = 0;
 		} else if (viewSwitch) {
-			if (store.view === "collection") {
+			if (store.view === "bond") {
+				if (prevView === "bond") {
+					const prevIndex = this.cycleIndex;
+					this.cycleIndex += 1;
+					if (this.cycleIndex === entry.bond!.length) {
+						this.cycleIndex = 0;
+					}
+					if (prevIndex === this.cycleIndex) {
+						return;
+					}
+
+					console.log(this.cycleIndex);
+				}
+
+				if (!!this.getBundle(entry, store.view)) {
+					this.modelUpdate = true;
+				}
+
+				store.loading = true;
+				return;
+			} else if (store.view === "collection") {
 				if ((entry.collection ?? []).length === 0) {
 					store.view = prevView;
 				} else if (prevView === "collection") {
@@ -373,7 +404,7 @@ export class ModelState {
 			case "skill":
 				return entry.skill;
 			case "bond":
-				return entry.bond;
+				return entry.bond?.[this.cycleIndex];
 			default:
 				throw new Error("Unreachable code");
 		}

@@ -3,7 +3,7 @@
 	import { type ColumnDef } from "@tanstack/table-core";
 	import DataTable from "./data-table.svelte";
 	import * as Dialog from "$lib/components/ui/dialog/index";
-	import { Button, buttonVariants } from "./ui/button/index";
+	import { Button } from "./ui/button/index";
 	import { renderSnippet } from "./ui/data-table";
 	import {
 		addKeydownListener,
@@ -19,6 +19,13 @@
 	import { keybinds } from "$lib/core/keybinds";
 	import Toggle from "./ui/toggle/toggle.svelte";
 	import type { Entry } from "$lib/core/types";
+	import {
+		ASSET_PROTOCOL,
+		DIR_CONTAINERS,
+		PATH_GALLERY_DATA,
+	} from "$lib/core/constants";
+	import { HouseIcon } from "@lucide/svelte";
+	import { goto } from "$app/navigation";
 
 	const _showDetails = localStorage.getItem("showDetails");
 	const _showModels = localStorage.getItem("showModels");
@@ -39,6 +46,11 @@
 				hideUI();
 			}
 		});
+		addKeydownListener((ev) => {
+			if (ev.key === keybinds.Home) {
+				goto("/");
+			}
+		});
 	});
 
 	const columns: ColumnDef<Entry>[] = $derived.by(() => {
@@ -48,8 +60,12 @@
 				cell: ({ row }) => {
 					const id = row.original.id;
 					const entry = store.map[id];
-					const src = `/icons/hero_icons/__No_Icon__.png`;
-					return renderSnippet(viewButton, { id, src });
+					const src = PATH_GALLERY_DATA(
+						DIR_CONTAINERS,
+						entry.icons.hero
+					);
+					const alt = `/icons/hero_icons/__No_Icon__.png`;
+					return renderSnippet(viewButton, { id, src, alt });
 				},
 			},
 			{
@@ -150,7 +166,11 @@
 					{
 						id: "bond",
 						accessorFn: (row) =>
-							row.bond?.map((b) => fileName(b.atlas)),
+							row.bond?.map((b) =>
+								b[0] === null
+									? fileName(b[1][0])
+									: fileName(b[0]?.atlas)
+							),
 						header: "Bond",
 						filterFn: nonEmptyFilterFn,
 						enableColumnFilter: true,
@@ -213,35 +233,51 @@
 		localStorage.setItem("showDetails", JSON.stringify(showDetails));
 		localStorage.setItem("showModels", JSON.stringify(showModels));
 	});
+
+	const buttonStyle =
+		"bg-canvas/80 hover:bg-canvas border border-foreground/10 text-foreground py-2 px-4 rounded-[8px] text-sm flex gap-2 justify-between items-center";
 </script>
 
-{#snippet viewButton({ id, src }: { id: string; src: string })}
+{#snippet viewButton({
+	id,
+	src,
+	alt,
+}: {
+	id: string;
+	src: Promise<string>;
+	alt: string;
+})}
 	<Button
 		onclick={() => onclick(id)}
 		variant="ghost"
 		class="cursor-pointer place-self-center flex gap-2 hover:!bg-background w-[4.5rem] !pr-0"
 	>
 		<Icon icon={"mdi:eye"} />
-		<img
-			{src}
-			alt={id}
-			width={36}
-			height={36}
-			class="rounded"
-			loading="lazy"
-		/>
+		{#await src then src}
+			<img
+				src={src ? `${ASSET_PROTOCOL}/${src}` : alt}
+				alt={id}
+				width={48}
+				height={48}
+				class="rounded"
+				loading="lazy"
+			/>
+		{/await}
 	</Button>
 {/snippet}
 
 <div
-	class="absolute bottom-0 left-0 m-4 rounded-lg flex flex-col gap-2 z-10 {store.uiState !==
+	class="ml-4 w-fit rounded-lg flex flex-col gap-4 z-10 {store.uiState !==
 	'visible'
 		? 'hidden'
 		: ''}"
 >
+	<button class={buttonStyle} onclick={() => goto("/")}>
+		Home <Key key={keybinds.Home} />
+	</button>
 	<Dialog.Root bind:open>
 		<Dialog.Trigger
-			class={`${buttonVariants({ variant: "ghost" })} bg-canvas border border-foreground/10`}
+			class="bg-canvas/80 hover:bg-canvas border border-foreground/10 text-foreground py-2 px-4 rounded-[8px] text-sm flex justify-between"
 		>
 			Listing <Key key={keybinds.Listing} />
 		</Dialog.Trigger>
@@ -253,12 +289,12 @@
 						<Toggle bind:pressed={showDetails}>Show Details</Toggle>
 						<Toggle bind:pressed={showModels}>Show Models</Toggle>
 					</div>
-					<Button
+					<button
 						onclick={clearAllFilters}
 						class="place-self-end w-min"
 					>
 						Clear All Filters
-					</Button>
+					</button>
 				</div>
 			</Dialog.Header>
 			<div
@@ -267,14 +303,9 @@
 			></div>
 		</Dialog.Content>
 	</Dialog.Root>
-	<Button
-		onclick={hideUI}
-		class="{buttonVariants({
-			variant: 'ghost',
-		})} bg-canvas border border-foreground/10 text-foreground"
-	>
+	<button onclick={hideUI} class={buttonStyle}>
 		Hide UI <Key key={keybinds.Hide_UI} />
-	</Button>
+	</button>
 </div>
 
 <div id="datatable-container" class="hidden">

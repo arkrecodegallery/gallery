@@ -92,13 +92,13 @@ export function prettyBirthday(entry: Entry) {
 		const split = entry.details.birthday.split(" / ");
 		if (split.length != 2) throw "";
 
-		const monthIndex = Number(split[0]);
+		const monthIndex = Number(split[0]) - 1;
 		if (Number.isNaN(monthIndex) || monthIndex >= months.length) throw "";
 
 		const day = Number(split[1]);
 		if (Number.isNaN(day) || day > 31) throw "";
 
-		return `${months[monthIndex - 1]} ${split[1]}`;
+		return `${months[monthIndex]} ${day}`;
 	} catch {
 		return entry.details.birthday;
 	}

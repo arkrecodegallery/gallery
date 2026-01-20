@@ -5,12 +5,22 @@
 
 	const image = $derived.by(() => {
 		const entry = store.modelState.getAbsoluteEntry();
-		if (entry.collection) {
-			return store.assetManager.path(
-				entry.collection[store.modelState.cycleIndex]
-			);
-		} else {
-			return undefined;
+
+		if (store.view === "bond") {
+			const tuple = entry.bond?.[store.modelState.cycleIndex];
+			if (tuple !== undefined && tuple[0] === null) {
+				return store.assetManager.path(
+					tuple[1][store.modelState.bondAnimationIndex]
+				);
+			}
+		} else if (store.view === "collection") {
+			if (entry.collection) {
+				return store.assetManager.path(
+					entry.collection[store.modelState.cycleIndex]
+				);
+			} else {
+				return undefined;
+			}
 		}
 	});
 </script>
@@ -24,16 +34,14 @@
 	</div>
 {/if}
 
-{#if store.view === "collection" && image}
+{#if image}
 	<div class="w-dvw h-dvh bg-canvas absolute z-5">
 		<img
 			src={image}
 			onload={() => {
-				if (store.view === "collection") {
-					store.loading = false;
-				}
+				store.loading = false;
 			}}
-			alt="temp"
+			alt="decorative"
 			class="object-contain w-full h-full z-10 p-8"
 		/>
 	</div>

@@ -70,8 +70,12 @@ export class AssetManager {
 			case "skill":
 				return [entry.skill!.skel, entry.skill!.atlas];
 			case "bond":
-				return [entry.bond![0].skel, entry.bond![0].atlas];
-			default: // collection should trigger a model refresh
+				const tuple = entry.bond![store.modelState.cycleIndex];
+				if (tuple[0] !== undefined) {
+					return [tuple[0].skel, tuple[0].atlas];
+				}
+				// fallthrough
+			default: // collection should not trigger a model refresh
 				return [entry.hero.skel, entry.hero.atlas];
 		}
 	}

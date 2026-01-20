@@ -52,18 +52,28 @@
 			case "skill":
 				return 0;
 			case "bond":
-				return 0;
+				return store.modelState.cycleIndex;
 			case "collection":
 				return store.modelState.cycleIndex;
 			default:
 				return 0;
 		}
 	}
+
+	function switchView(view: ModelView) {
+		const key = getKey(view);
+		const event = new KeyboardEvent("keydown", {
+			key,
+			code: key,
+			bubbles: true,
+			cancelable: true,
+		});
+		document.dispatchEvent(event);
+	}
 </script>
 
 <div
-	class="absolute bottom-0 right-0 text-foreground mb-4 flex flex-col gap-4 z-10 {store.uiState !==
-	'visible'
+	class="text-foreground flex flex-col gap-4 z-10 {store.uiState !== 'visible'
 		? 'hidden'
 		: ''}"
 >
@@ -75,18 +85,19 @@
 		{@const index = getIndex(view)}
 
 		{#if store.view === view || (store.view === "alt" && view === "hero")}
-			<div
-				class="bg-canvas/80 border border-foreground/50 border-r-black/0 px-4 py-2 rounded-s-lg flex flex-col"
+			<button
+				class="bg-canvas/80 border border-foreground/50 border-r-black/0 px-4 py-2 rounded-s-lg flex flex-col cursor-pointer"
+				onclick={() => switchView(view)}
 			>
 				<div class="w-full flex justify-between items-center gap-4">
 					<p>{name}</p>
 					<Key class="text-right" {key} />
 				</div>
 				{@render carousel(count, index, true)}
-			</div>
+			</button>
 		{:else if disabled}
 			<div
-				class="bg-canvas/70 border border-black/0 px-4 py-2 rounded-s-lg text-disabled-foreground flex flex-col"
+				class="bg-canvas/80 border border-black/0 px-4 py-2 rounded-s-lg text-disabled-foreground flex flex-col"
 			>
 				<div class="w-full flex justify-between items-center gap-4">
 					<p>{name}</p>
@@ -95,21 +106,22 @@
 				{@render carousel(count, index, false)}
 			</div>
 		{:else}
-			<div
-				class="bg-canvas/80 border border-foreground/10 px-4 py-2 rounded-s-lg flex flex-col"
+			<button
+				class="bg-canvas/80 border border-foreground/10 px-4 py-2 rounded-s-lg flex flex-col cursor-pointer"
+				onclick={() => switchView(view)}
 			>
 				<div class="w-full flex justify-between items-center gap-4">
 					<p>{name}</p>
 					<Key class="text-right" {key} />
 				</div>
 				{@render carousel(count, index, false)}
-			</div>
+			</button>
 		{/if}
 	{/each}
 </div>
 
 <div
-	class="absolute bottom-0 right-0 text-foreground m-4 flex flex-col gap-1 w-20 z-10 {store.uiState !==
+	class="text-foreground mr-4 flex flex-col gap-1 w-20 z-10 {store.uiState !==
 	'minimal'
 		? 'hidden'
 		: ''}"

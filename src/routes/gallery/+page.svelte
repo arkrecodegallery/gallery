@@ -20,10 +20,16 @@
 </script>
 
 <Effects />
-<Details />
-<Controls />
-<Tabs />
-<Table />
+<div class="z-10">
+	<div class="absolute top-0 left-0 flex flex-col gap-4 pt-4">
+		<Details />
+		<Table />
+	</div>
+	<div class="absolute bottom-0 right-0 flex flex-col items-stretch pb-4">
+		<Tabs />
+		<Controls />
+	</div>
+</div>
 <Collection />
 <canvas bind:this={store._canvasElement}></canvas>
 

@@ -26,8 +26,9 @@
 		<Table />
 	</div>
 	<div class="absolute bottom-0 right-0 flex flex-col items-stretch pb-4">
-		<Tabs />
-		<Controls />
+		<Controls>
+			<Tabs />
+		</Controls>
 	</div>
 </div>
 <Collection />

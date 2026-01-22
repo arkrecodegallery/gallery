@@ -24,7 +24,6 @@
 		DIR_CONTAINERS,
 		PATH_GALLERY_DATA,
 	} from "$lib/core/constants";
-	import { HouseIcon } from "@lucide/svelte";
 	import { goto } from "$app/navigation";
 
 	const _showDetails = localStorage.getItem("showDetails");
@@ -289,12 +288,12 @@
 						<Toggle bind:pressed={showDetails}>Show Details</Toggle>
 						<Toggle bind:pressed={showModels}>Show Models</Toggle>
 					</div>
-					<button
+					<Button
 						onclick={clearAllFilters}
 						class="place-self-end w-min"
 					>
 						Clear All Filters
-					</button>
+					</Button>
 				</div>
 			</Dialog.Header>
 			<div

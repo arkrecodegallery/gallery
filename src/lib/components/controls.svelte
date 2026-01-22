@@ -11,10 +11,12 @@
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
 
+	let { children } = $props();
+
 	let selectedAnimations: Record<string, boolean | undefined> = $state({});
 	$effect(() => {
 		selectedAnimations = Object.fromEntries(
-			animations.map((a) => [a.name, false])
+			animations.map((a) => [a.name, false]),
 		);
 	});
 	$effect(() => {
@@ -29,7 +31,6 @@
 		store.modelState.animationUpdate = true;
 		store.modelState.skinUpdate = true;
 
-		// make it shift-friendly (use select type="multiple" when shift is held?)
 		// tie-in with timeline
 	});
 </script>
@@ -42,7 +43,30 @@
 	<div>
 		<DropdownMenu.Root>
 			<DropdownMenu.Trigger class="w-full cursor-pointer rounded-l-lg">
-				{@render tab()}
+				{@render skinTab()}
+			</DropdownMenu.Trigger>
+			<DropdownMenu.Content>
+				<DropdownMenu.RadioGroup
+					bind:value={store.modelState.skin}
+					onValueChange={() => {
+						store.modelState.skipSkinCalculation = true;
+						store.modelState.skinUpdate = true;
+					}}
+				>
+					{#each skins as skin}
+						<DropdownMenu.RadioItem value={skin.name}>
+							{skin.name}
+						</DropdownMenu.RadioItem>
+					{/each}
+				</DropdownMenu.RadioGroup>
+			</DropdownMenu.Content>
+		</DropdownMenu.Root>
+	</div>
+	{@render children()}
+	<div>
+		<DropdownMenu.Root>
+			<DropdownMenu.Trigger class="w-full cursor-pointer rounded-l-lg">
+				{@render animationTab()}
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
 				{#each animations as anim}
@@ -56,48 +80,47 @@
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	</div>
-	<button
-		class="w-full border border-r-black/0 border-foreground/10 bg-canvas/80 py-2 px-4 rounded-l-lg cursor-pointer"
-	>
-		<!-- <Select
-			name="Skin"
-			class="border-none pl-1"
-			values={skins.map((skin) => skin.name)}
-			bind:selected={store.modelState.skin}
-			onchange={() => {
-				store.modelState.skipSkinCalculation = true;
-				store.modelState.skinUpdate = true;
-			}}
-		> -->
-		<div class="flex gap-4 justify-between items-center">
-			<ShirtIcon class="size-4" />
-			<Kbd.Group>
-				<Key
-					key={keybinds.Skin_Decrement}
-					disabled={store.view !== "hero" && store.view !== "alt"}
-				/>
-				<Key
-					key={keybinds.Skin_Increment}
-					disabled={store.view !== "hero" && store.view !== "alt"}
-				/>
-			</Kbd.Group>
-		</div>
-		<!-- </Select> -->
-	</button>
 </div>
 
-{#snippet tab()}
+{#snippet skinTab()}
+	{@const disabled = store.view !== "hero" && store.view !== "alt"}
 	<div
-		class="w-full border border-r-black/0 border-foreground/50 bg-canvas/80 py-2 px-4 rounded-l-lg"
+		class="w-full border border-r-black/0 {disabled
+			? 'border-foreground/10'
+			: 'border-foreground/50'} bg-canvas/80 py-2 px-4 rounded-l-lg"
 	>
 		<div class="flex gap-4 justify-between items-center">
-			<ClapperboardIcon class="size-4" />
+			<ShirtIcon
+				class="{disabled ? 'text-disabled-foreground' : ''} size-4"
+			/>
+			<Kbd.Group>
+				<Key key={keybinds.Skin_Decrement} {disabled} />
+				<Key key={keybinds.Skin_Increment} {disabled} />
+			</Kbd.Group>
+		</div>
+	</div>
+{/snippet}
+
+{#snippet animationTab()}
+	{@const disabled = store.view === "collection"}
+	<div
+		class="w-full border border-r-black/0 {disabled
+			? 'border-foreground/10'
+			: 'border-foreground/50'} bg-canvas/80 py-2 px-4 rounded-l-lg"
+	>
+		<div class="flex gap-4 justify-between items-center">
+			<ClapperboardIcon
+				class="{disabled ? 'text-disabled-foreground' : ''} size-4"
+			/>
 			<Kbd.Group>
 				<Key
 					key={keybinds.Cutscene}
 					disabled={store.view !== "skill"}
 				/>
-				<Key key={keybinds.Touch} disabled={store.view === "bond"} />
+				<Key
+					key={keybinds.Touch}
+					disabled={store.view === "collection"}
+				/>
 			</Kbd.Group>
 		</div>
 		{@render progress()}
@@ -110,9 +133,15 @@
 		? 'hidden'
 		: ''}"
 >
-	{@render progress()}
+	{@render children()}
+	{@render progress("!mt-1")}
 </div>
 
-{#snippet progress()}
-	<div class="h-1 w-full bg-foreground rounded-full mt-2"></div>
+{#snippet progress(className?: string)}
+	{@const disabled = store.view === "collection"}
+	<div
+		class="h-1 w-full {disabled
+			? 'bg-disabled'
+			: 'bg-foreground'} rounded-full mt-2 {className}"
+	></div>
 {/snippet}

@@ -107,10 +107,10 @@ export class ModelState {
 					this.animationUpdate = true;
 				} else if (store.view === "bond") {
 					const entry = this.getAbsoluteEntry();
-					const tuple = entry.bond![this.cycleIndex];
-					if (tuple[0] === null) {
+					const presentation = entry.bond![this.cycleIndex];
+					if (presentation.kind === "stills") {
 						this.bondAnimationIndex += 1;
-						if (this.bondAnimationIndex === tuple[1].length) {
+						if (this.bondAnimationIndex === presentation.images.length) {
 							this.bondAnimationIndex = 0;
 						}
 					}

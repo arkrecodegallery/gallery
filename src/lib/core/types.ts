@@ -9,10 +9,14 @@ export interface Entry {
 	hero: Bundle;
 	alt?: Bundle;
 	skill?: Bundle;
-	bond?: [Bundle | undefined, string[]][];
+	bond?: BondPresentation[];
 
 	collection?: string[];
 }
+
+export type BondPresentation =
+	| { kind: "animated"; bundle: Bundle; motions: string[] }
+	| { kind: "stills"; images: string[] };
 
 export interface Icons {
 	hero: string;

@@ -7,10 +7,10 @@
 		const entry = store.modelState.getAbsoluteEntry();
 
 		if (store.view === "bond") {
-			const tuple = entry.bond?.[store.modelState.cycleIndex];
-			if (tuple !== undefined && tuple[0] === null) {
+			const presentation = entry.bond?.[store.modelState.cycleIndex];
+			if (presentation !== undefined && presentation.kind === "stills") {
 				return store.assetManager.path(
-					tuple[1][store.modelState.bondAnimationIndex]
+					presentation.images[store.modelState.bondAnimationIndex]
 				);
 			}
 		} else if (store.view === "collection") {

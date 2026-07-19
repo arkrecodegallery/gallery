@@ -13,12 +13,12 @@ pub struct VariableLookup {
 }
 
 impl VariableLookup {
-    pub fn new(dir_gallery_data: String) -> Result<Self> {
+    pub fn new(dir_gallery_data: &str) -> Result<Self> {
         let mut files = HashMap::new();
         let mut variables = HashMap::new();
 
         for file in [FILE_ARTIFACT, FILE_ROLE, FILE_ROLE_COLLECTION, FILE_SKILL] {
-            let path = Self::get_file_path(dir_gallery_data.clone(), file);
+            let path = Self::get_file_path(dir_gallery_data, file);
             files.insert(file.to_string(), CSVFile::new(path, &mut variables)?);
         }
 
@@ -27,7 +27,7 @@ impl VariableLookup {
     }
 
     fn resolve_variables(
-        dir_gallery_data: String,
+        dir_gallery_data: &str,
         variables: &mut HashMap<String, String>,
     ) -> Result<()> {
         let path = Self::get_file_path(dir_gallery_data, FILE_ENG);
@@ -60,7 +60,7 @@ impl VariableLookup {
         Ok(())
     }
 
-    fn get_file_path(dir_gallery_data: String, file: &str) -> String {
+    fn get_file_path(dir_gallery_data: &str, file: &str) -> String {
         format!(
             "{}{}{}{}{}",
             dir_gallery_data, DIR_CONTAINERS, DIR_ASSETS, DIR_STATIC_DATA, file

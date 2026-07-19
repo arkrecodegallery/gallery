@@ -70,9 +70,9 @@ export class AssetManager {
 			case "skill":
 				return [entry.skill!.skel, entry.skill!.atlas];
 			case "bond":
-				const tuple = entry.bond![store.modelState.cycleIndex];
-				if (tuple[0] !== undefined) {
-					return [tuple[0].skel, tuple[0].atlas];
+				const presentation = entry.bond![store.modelState.cycleIndex];
+				if (presentation.kind === "animated") {
+					return [presentation.bundle.skel, presentation.bundle.atlas];
 				}
 				// fallthrough
 			default: // collection should not trigger a model refresh

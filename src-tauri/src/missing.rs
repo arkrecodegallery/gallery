@@ -1,5 +1,6 @@
 use std::collections::{BTreeMap, BTreeSet};
 
+use itertools::chain;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -59,58 +60,50 @@ impl Missing {
         skels
     }
 
+    /// Reads one column of a CSV file, applying `transform` to each row's value.
+    /// Returns `None` if the file or column doesn't exist (used to detect the end
+    /// of a run of dynamically-numbered columns like `DynamicField1`, `DynamicField2`, ...).
+    fn scrape_column(
+        variables: &VariableLookup,
+        file_name: &str,
+        column: &str,
+        transform: impl Fn(&str) -> Option<String>,
+    ) -> Option<Vec<String>> {
+        let file = variables.get_file(file_name)?;
+        let col_index = file.get_column_index(column)?;
+
+        Some(
+            file.get_data()
+                .values()
+                .filter_map(|cols| transform(&cols[col_index]))
+                .collect(),
+        )
+    }
+
     fn collect_cg(variables: &VariableLookup) -> BTreeSet<String> {
-        let mut cg = BTreeSet::new();
+        let artifact_ids = Self::scrape_column(variables, FILE_ARTIFACT, FIELD_ID, |id| {
+            (id.starts_with("A") && id != "A9999").then(|| id.to_string())
+        })
+        .unwrap_or_default();
 
-        let mut scrape_col =
-            |file_name: &str, column: &str, transform: fn(&str) -> Option<String>| -> Option<()> {
-                let file = variables.get_file(file_name)?;
-                let col_index = file.get_column_index(column)?;
+        let connected_artifacts = (1..)
+            .map(|i| format!("{}{}", FIELD_DYNAMIC, i))
+            .map_while(|field| {
+                Self::scrape_column(variables, FILE_ROLE, &field, |art| {
+                    art.starts_with("ConnectArtifact#A")
+                        .then(|| art.split("#").last().unwrap().to_string())
+                })
+            })
+            .flatten();
 
-                for (_, cols) in file.get_data() {
-                    let entry = &cols[col_index];
-                    if let Some(value) = transform(entry) {
-                        cg.insert(value);
-                    }
-                }
+        let collection_cgs =
+            Self::scrape_column(variables, FILE_ROLE_COLLECTION, FIELD_PREFAB, |path| {
+                path.starts_with("CG/A")
+                    .then(|| path.split("/").nth(1).unwrap().to_string())
+            })
+            .unwrap_or_default();
 
-                Some(())
-            };
-
-        scrape_col(FILE_ARTIFACT, FIELD_ID, |id| -> Option<String> {
-            if id.starts_with("A") && id != "A9999" {
-                Some(id.to_string())
-            } else {
-                None
-            }
-        });
-
-        for i in 1..=i32::MAX {
-            let field = format!("{}{}", FIELD_DYNAMIC, i);
-            if let None = scrape_col(FILE_ROLE, &field, |art| -> Option<String> {
-                if art.starts_with("ConnectArtifact#A") {
-                    Some(art.split("#").last().unwrap().to_string())
-                } else {
-                    None
-                }
-            }) {
-                break;
-            }
-        }
-
-        scrape_col(
-            FILE_ROLE_COLLECTION,
-            FIELD_PREFAB,
-            |path| -> Option<String> {
-                if path.starts_with("CG/A") {
-                    Some(path.split("/").nth(1).unwrap().to_string())
-                } else {
-                    None
-                }
-            },
-        );
-
-        cg
+        chain!(artifact_ids, connected_artifacts, collection_cgs).collect()
     }
 
     pub fn insert_log(&mut self, id: String, key: MissingKey, log: String) {

@@ -16,8 +16,14 @@ pub struct AssetLookup {
     in_asset: bool,
 }
 
+/// One `<Asset>` container's path and the file names it holds.
+pub struct AssetGroup {
+    pub container: String,
+    pub files: Vec<String>,
+}
+
 impl AssetLookup {
-    pub fn new(dir_gallery_data: String) -> Result<Self> {
+    pub fn new(dir_gallery_data: &str) -> Result<Self> {
         let mut assets = Self {
             map: HashMap::new(),
             duplicates: HashMap::new(),
@@ -112,13 +118,16 @@ impl AssetLookup {
             .push(name);
     }
 
-    pub fn get_by_prefix(&self, prefix: &str) -> Vec<(String, Vec<String>)> {
+    pub fn get_by_prefix(&self, prefix: &str) -> Vec<AssetGroup> {
         let container = self.get_container(prefix);
 
         self.map
             .iter()
             .filter(|(path, _)| path.starts_with(&container))
-            .map(|(k, v)| (k.clone(), v.to_vec()))
+            .map(|(container, files)| AssetGroup {
+                container: container.clone(),
+                files: files.to_vec(),
+            })
             .collect()
     }
 

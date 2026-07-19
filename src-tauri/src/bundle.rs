@@ -5,6 +5,7 @@ use regex::Regex;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    assets::AssetGroup,
     constants::DIR_CONTAINERS,
     entry::Entry,
     missing::{Missing, MissingKey},
@@ -20,9 +21,9 @@ pub struct Bundle {
 }
 
 impl Bundle {
-    pub fn new(dir_gallery_data: String) -> Self {
+    pub fn new(dir_gallery_data: &str) -> Self {
         Self {
-            dir_gallery_data,
+            dir_gallery_data: dir_gallery_data.to_string(),
             ..Self::default()
         }
     }
@@ -58,6 +59,22 @@ impl Bundle {
     }
 }
 
+/// A resolved main bundle plus its optional alt-costume counterpart.
+pub struct MainAndAlt {
+    pub main: Bundle,
+    pub alt: Option<Bundle>,
+}
+
+enum BundleRole {
+    Main,
+    Alt,
+}
+
+pub enum MissingAssetPolicy {
+    LogIfMissing,
+    Ignore,
+}
+
 pub struct BundleProcessor<'a> {
     main: Bundle,
     alt: Bundle,
@@ -66,24 +83,29 @@ pub struct BundleProcessor<'a> {
 }
 
 impl<'a> BundleProcessor<'a> {
-    pub fn new(dir_gallery_data: String, alt_regex: Option<&'a Regex>, key: MissingKey) -> Self {
+    pub fn new(dir_gallery_data: &str, alt_regex: Option<&'a Regex>, key: MissingKey) -> Self {
         Self {
-            main: Bundle::new(dir_gallery_data.clone()),
+            main: Bundle::new(dir_gallery_data),
             alt: Bundle::new(dir_gallery_data),
             alt_regex,
             key,
         }
     }
 
-    pub fn process_assets(&mut self, assets: Vec<(String, Vec<String>)>, missing: &mut Missing) {
-        for (container, files) in assets {
-            if container.ends_with(".asset") {
-                self.process_asset_container(&container, files, missing);
+    pub fn process_assets(&mut self, assets: Vec<AssetGroup>, missing: &mut Missing) {
+        for group in assets {
+            if group.container.ends_with(".asset") {
+                self.process_asset_container(&group.container, group.files, missing);
             }
         }
     }
 
-    fn process_asset_container(&mut self, container: &str, files: Vec<String>, missing: &mut Missing) {
+    fn process_asset_container(
+        &mut self,
+        container: &str,
+        files: Vec<String>,
+        missing: &mut Missing,
+    ) {
         for file in files {
             let path = Entry::build_file_path(container, &file);
 
@@ -112,74 +134,83 @@ impl<'a> BundleProcessor<'a> {
 
     pub fn get_main_and_log(
         &self,
-        id: String,
-        log_id: String,
+        id: &str,
+        log_id: &str,
         missing: &mut Missing,
-        log_missing_assets: bool,
-    ) -> Result<Option<Bundle>> {
-        Ok(
-            if let Ok(Some(main)) =
-                self.get_bundle_and_log(id.clone(), log_id.to_string(), missing, &self.main, false, log_missing_assets)
-            {
-                Some(main)
-            } else {
-                None
-            },
-        )
+        policy: MissingAssetPolicy,
+    ) -> Option<Bundle> {
+        self.get_bundle_and_log(id, log_id, missing, &self.main, BundleRole::Main, policy)
     }
 
     pub fn get_both_and_log(
         &self,
-        id: String,
-        log_id: String,
+        id: &str,
+        log_id: &str,
         missing: &mut Missing,
-    ) -> Result<Option<(Bundle, Option<Bundle>)>> {
-        Ok(
-            if let Ok(Some(main)) =
-                self.get_bundle_and_log(id.clone(), log_id.to_string(), missing, &self.main, false, true)
-            {
-                if let Ok(Some(alt)) = self.get_bundle_and_log(id, log_id.to_string(), missing, &self.alt, true, true) {
-                    Some((main, Some(alt)))
-                } else {
-                    Some((main, None))
-                }
-            } else {
-                None
-            },
-        )
+    ) -> Option<MainAndAlt> {
+        let main = self.get_bundle_and_log(
+            id,
+            log_id,
+            missing,
+            &self.main,
+            BundleRole::Main,
+            MissingAssetPolicy::LogIfMissing,
+        )?;
+        let alt = self.get_bundle_and_log(
+            id,
+            log_id,
+            missing,
+            &self.alt,
+            BundleRole::Alt,
+            MissingAssetPolicy::LogIfMissing,
+        );
+
+        Some(MainAndAlt { main, alt })
     }
 
     fn get_bundle_and_log(
         &self,
-        id: String,
-        log_id: String,
+        id: &str,
+        log_id: &str,
         missing: &mut Missing,
         bundle: &Bundle,
-        is_alt: bool,
-        log_missing_assets: bool,
-    ) -> Result<Option<Bundle>> {
+        role: BundleRole,
+        policy: MissingAssetPolicy,
+    ) -> Option<Bundle> {
+        let is_alt = matches!(role, BundleRole::Alt);
         let flavor = if is_alt { "alt " } else { "" };
 
-        if bundle.valid_assets() {
-            match bundle.is_valid() {
-                Ok(is_valid) => {
-                    if is_valid {
-                        Ok(Some(bundle.clone()))
-                    } else {
-                        missing.insert_log(id, self.key, format!("Missing {}mat (id '{}')", flavor, log_id));
-                        Ok(None)
-                    }
-                }
-                Err(err) => {
-                    missing.insert_log(id, self.key, format!("Invalid {}atlas (id '{}'): {}", flavor, err, log_id));
-                    Err(err)
-                }
+        if !bundle.valid_assets() {
+            let should_log =
+                matches!(policy, MissingAssetPolicy::LogIfMissing) && is_alt == self.alt_regex.is_some();
+            if should_log {
+                missing.insert_log(
+                    id.to_string(),
+                    self.key,
+                    format!("Missing {}skel or atlas (id '{}')", flavor, log_id),
+                );
             }
-        } else {
-            if log_missing_assets && (is_alt == self.alt_regex.is_some()) {
-                missing.insert_log(id, self.key, format!("Missing {}skel or atlas (id '{}')", flavor, log_id));
+            return None;
+        }
+
+        match bundle.is_valid() {
+            Ok(true) => Some(bundle.clone()),
+            Ok(false) => {
+                missing.insert_log(
+                    id.to_string(),
+                    self.key,
+                    format!("Missing {}mat (id '{}')", flavor, log_id),
+                );
+                None
             }
-            Ok(None)
+            Err(err) => {
+                missing.insert_log(
+                    id.to_string(),
+                    self.key,
+                    format!("Invalid {}atlas (id '{}'): {}", flavor, err, log_id),
+                );
+                None
+            }
         }
     }
 }

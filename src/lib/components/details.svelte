@@ -1,10 +1,38 @@
 <script lang="ts">
 	import { store } from "$lib/hooks/state.svelte";
 	import * as Kbd from "$lib/components/ui/kbd/index.js";
-	import Icon from "@iconify/svelte";
 	import Key from "./key.svelte";
 	import { keybinds } from "$lib/core/keybinds";
 	import { imperialHeight, imperialWeight, prettyBirthday } from "$lib/utils";
+	import {
+		ZodiacAquarius,
+		ZodiacAries,
+		ZodiacCancer,
+		ZodiacCapricorn,
+		ZodiacGemini,
+		ZodiacLeo,
+		ZodiacLibra,
+		ZodiacPisces,
+		ZodiacSagittarius,
+		ZodiacScorpio,
+		ZodiacTaurus,
+		ZodiacVirgo,
+	} from "@lucide/svelte";
+
+	const zodiacIcons: Record<string, typeof ZodiacAries> = {
+		aries: ZodiacAries,
+		taurus: ZodiacTaurus,
+		gemini: ZodiacGemini,
+		cancer: ZodiacCancer,
+		leo: ZodiacLeo,
+		virgo: ZodiacVirgo,
+		libra: ZodiacLibra,
+		scorpio: ZodiacScorpio,
+		sagittarius: ZodiacSagittarius,
+		capricorn: ZodiacCapricorn,
+		aquarius: ZodiacAquarius,
+		pisces: ZodiacPisces,
+	};
 
 	let entry = $derived.by(() => {
 		() => store.modelState.absoluteHeroIndex;
@@ -32,6 +60,9 @@
 		return { src: `/icons/stars/${count}-Stars.svg`, width };
 	});
 
+	const ZodiacIcon = $derived(
+		zodiacIcons[(entry.details.constellation ?? "").toLocaleLowerCase()]
+	);
 	const birthday = $derived(prettyBirthday(entry));
 	const height = $derived(imperialHeight(entry));
 	const weight = $derived(imperialWeight(entry));
@@ -77,12 +108,8 @@
 				{#if birthday}
 					<p>{birthday}</p>
 				{/if}
-				{#if entry.details.constellation}
-					<Icon
-						icon={`mdi:zodiac-${(entry.details.constellation ?? "").toLocaleLowerCase()}`}
-						height="16"
-						width="16"
-					/>
+				{#if ZodiacIcon}
+					<ZodiacIcon size={16} />
 				{/if}
 				{#if entry.details.job}
 					<img

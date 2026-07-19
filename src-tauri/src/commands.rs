@@ -1,6 +1,6 @@
 use crate::assets::AssetLookup;
 use crate::constants::{FILE_MAP, FILE_MISSING};
-use crate::entry::Entry;
+use crate::entry::{Entry, GalleryContext};
 use crate::missing::Missing;
 use crate::rules::Rules;
 use crate::utils::get_hero_ids;
@@ -24,18 +24,24 @@ pub fn generate_map(dir_gallery_data: String) -> Result<String, String> {
 
 fn _generate_map(dir_gallery_data: String) -> Result<()> {
     // create lookup structures
-    let assets = AssetLookup::new(dir_gallery_data.clone())?;
-    let variables = VariableLookup::new(dir_gallery_data.clone())?;
+    let assets = AssetLookup::new(&dir_gallery_data)?;
+    let variables = VariableLookup::new(&dir_gallery_data)?;
     let rules = Rules::new();
     let mut missing = Missing::new(&assets, &variables);
+
+    let ctx = GalleryContext {
+        dir_gallery_data: &dir_gallery_data,
+        assets: &assets,
+        variables: &variables,
+        rules: &rules,
+    };
 
     // create map from lookup
     let ids = get_hero_ids(&variables, &rules)?;
     let mut map = BTreeMap::<String, Entry>::new();
     for id in ids {
-        let entry = Entry::new(dir_gallery_data.clone(), &id, &assets, &variables, &rules, &mut missing)?;
-        if let Some(e) = entry {
-            map.insert(id.clone(), e);
+        if let Some(entry) = Entry::new(&ctx, &id, &mut missing) {
+            map.insert(id.clone(), entry);
         }
     }
     missing.cleanup(&dir_gallery_data);

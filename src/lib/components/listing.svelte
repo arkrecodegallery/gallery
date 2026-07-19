@@ -166,9 +166,9 @@
 						id: "bond",
 						accessorFn: (row) =>
 							row.bond?.map((b) =>
-								b[0] === null
-									? fileName(b[1][0])
-									: fileName(b[0]?.atlas)
+								b.kind === "stills"
+									? fileName(b.images[0])
+									: fileName(b.bundle.atlas)
 							),
 						header: "Bond",
 						filterFn: nonEmptyFilterFn,

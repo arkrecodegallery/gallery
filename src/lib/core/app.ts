@@ -76,7 +76,7 @@ export class App implements SpineCanvasApp {
 
 	setAnimation() {
 		store.modelState
-			.getAnimation(this.skeletonData, this.animation)
+			.getAnimation(this.skeletonData, this.animation, this.skeleton)
 			.forEach(({ trackIndex, animationName, loop }) =>
 				this.animation.setAnimation(trackIndex, animationName, loop)
 			);

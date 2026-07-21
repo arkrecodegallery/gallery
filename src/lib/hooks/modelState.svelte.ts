@@ -3,6 +3,7 @@ import type { Animation, Bundle, Entry, ModelView } from "../core/types";
 import type {
 	AnimationState,
 	AnimationStateListener,
+	Skeleton,
 	SkeletonData,
 	TrackEntry,
 } from "@esotericsoftware/spine-core";
@@ -32,6 +33,8 @@ export class ModelState {
 	cycleIndex: number = $state(0);
 	bondAnimationIndex: number = $state(0);
 	modelUpdate: boolean = false;
+
+	private lastBondSkeletonData?: SkeletonData;
 
 	constructor() {
 		addKeydownListener((ev) => {
@@ -113,6 +116,8 @@ export class ModelState {
 						if (this.bondAnimationIndex === presentation.images.length) {
 							this.bondAnimationIndex = 0;
 						}
+					} else if (presentation.kind === "animated") {
+						this.advanceBondStage();
 					}
 				}
 				break;
@@ -125,15 +130,75 @@ export class ModelState {
 		return update;
 	}
 
+	public setAnimationChecked(name: string, checked: boolean, additive = false) {
+		if (!additive) {
+			this.animations = checked ? { [name]: 0 } : {};
+			this.animationUpdate = true;
+			this.skinUpdate = true;
+			return;
+		}
+
+		const next = { ...this.animations };
+		if (checked) {
+			next[name] = Object.keys(next).length;
+		} else {
+			delete next[name];
+			Object.keys(next).forEach((key, i) => {
+				next[key] = i;
+			});
+		}
+
+		this.animations = next;
+		this.animationUpdate = true;
+		this.skinUpdate = true;
+	}
+
+	public advanceBondStage() {
+		if (!store.skeletonData) {
+			return;
+		}
+
+		const animate = new Animate(store.skeletonData.animations);
+		if (animate.groups.length === 0) {
+			return;
+		}
+
+		const currentIndex = this.findBondStageIndex(animate);
+		const nextIndex = (currentIndex + 1 + animate.groups.length) % animate.groups.length;
+		this.setBondStage(animate, nextIndex);
+		this.animationUpdate = true;
+		this.skinUpdate = true;
+	}
+
+	private findBondStageIndex(animate: Animate): number {
+		const active = new Set(Object.keys(this.animations));
+		return animate.groups.findIndex((group) =>
+			group.some((entry) => entry.animations.some((a) => active.has(a.name)))
+		);
+	}
+
+	private setBondStage(animate: Animate, stageIndex: number) {
+		const group = animate.groups[stageIndex] ?? [];
+		const representative = group[0]?.animations[0];
+
+		this.animations = representative ? { [representative.name]: 0 } : {};
+	}
+
 	public getAnimation(
 		skeletonData: SkeletonData,
-		animationState: AnimationState
+		animationState: AnimationState,
+		skeleton: Skeleton
 	): Animation[] {
 		if (store.view === "bond") {
-			const _ = new Animate(skeletonData.animations);
 			animationState.clearTracks();
-			const animations: Animation[] = [];
+			skeleton.setToSetupPose();
 
+			if (this.lastBondSkeletonData !== skeletonData) {
+				this.lastBondSkeletonData = skeletonData;
+				this.setBondStage(new Animate(skeletonData.animations), 0);
+			}
+
+			const animations: Animation[] = [];
 			for (const [anim, track] of Object.entries(this.animations)) {
 				animations.push({
 					animationName: anim,

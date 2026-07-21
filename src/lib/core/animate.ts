@@ -28,13 +28,6 @@ export class Animate {
 
 	constructor(animations: Animation[]) {
 		this.groupAnimations(animations);
-		console.log(
-			this.groups.map((group) =>
-				group
-					.map((entry) => entry.animations.map((anim) => anim.name))
-					.join("   ")
-			)
-		);
 	}
 
 	groupAnimations(animations: Animation[]) {

@@ -13,25 +13,20 @@
 
 	let { children } = $props();
 
-	let selectedAnimations: Record<string, boolean | undefined> = $state({});
+	let shiftHeld = $state(false);
 	$effect(() => {
-		selectedAnimations = Object.fromEntries(
-			animations.map((a) => [a.name, false]),
-		);
-	});
-	$effect(() => {
-		let i = 0;
-		const result: Record<string, number> = {};
-		for (const [anim, active] of Object.entries(selectedAnimations)) {
-			if (active === true) {
-				result[anim] = i++;
-			}
-		}
-		store.modelState.animations = result;
-		store.modelState.animationUpdate = true;
-		store.modelState.skinUpdate = true;
-
-		// tie-in with timeline
+		const onKeyDown = (e: KeyboardEvent) => {
+			if (e.key === "Shift") shiftHeld = true;
+		};
+		const onKeyUp = (e: KeyboardEvent) => {
+			if (e.key === "Shift") shiftHeld = false;
+		};
+		window.addEventListener("keydown", onKeyDown);
+		window.addEventListener("keyup", onKeyUp);
+		return () => {
+			window.removeEventListener("keydown", onKeyDown);
+			window.removeEventListener("keyup", onKeyUp);
+		};
 	});
 </script>
 
@@ -71,7 +66,13 @@
 			<DropdownMenu.Content>
 				{#each animations as anim}
 					<DropdownMenu.CheckboxItem
-						bind:checked={selectedAnimations[anim.name]}
+						checked={anim.name in store.modelState.animations}
+						onCheckedChange={(checked) =>
+							store.modelState.setAnimationChecked(
+								anim.name,
+								checked,
+								shiftHeld,
+							)}
 						closeOnSelect={false}
 					>
 						{anim.name}

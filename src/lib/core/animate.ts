@@ -188,11 +188,6 @@ export class Animate {
 		};
 	}
 
-	/**
-	 * The name of the next animation in a numbered-variant chain (e.g.
-	 * "21_loop_ani" -> "21_loop_ani2" -> "21_loop_ani3"). A missing trailing
-	 * number is treated as variant 1.
-	 */
 	nextVariantName(fullName: string): string {
 		const match = fullName.match(/\d+$/);
 		if (!match) {
@@ -204,7 +199,6 @@ export class Animate {
 		return `${fullName.slice(0, fullName.length - digits.length)}${next}`;
 	}
 
-	/** Whether `curr` is the same clip repeated, or the next in its numbered-variant chain. */
 	isVariantContinuation(prev: AnimationName, curr: AnimationName): boolean {
 		return (
 			curr.fullName === prev.fullName ||

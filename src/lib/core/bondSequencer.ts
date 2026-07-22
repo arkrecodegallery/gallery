@@ -6,25 +6,6 @@ export interface BondSequenceStep {
 	loop: boolean;
 }
 
-/**
- * Owns the bond auto-play state machine: which stage is active, what
- * sequence of animations should currently be queued for it, and whether a
- * manual (checkbox) selection has taken control away from auto-advance.
- *
- * `animate.groups[stageIndex][0]` is always the resting/stop animation for
- * a stage (see `Animate.groupAnimations`'s `flush`, which always seeds a
- * new group with the animation being stopped on). Everything after index 0
- * in a group is bypass footage that plays while *leaving* that stage on the
- * way to the next stage's stop - not part of the stage being entered.
- *
- * A stop can itself hold multiple numbered-variant clips (e.g.
- * `21_Loop_ani`/`21_Loop_ani2`, see `Animate.isVariantContinuation`). Those
- * play back to back as one continuous loop rather than picking a single
- * alternate - `loopChain` names the clips in that loop so the caller can
- * keep re-queuing it every lap (Spine's native `loop` only repeats a single
- * clip). `loopChain` is empty whenever a stop is just one clip, since native
- * `loop: true` already covers that case.
- */
 export class BondSequencer {
 	stageIndex = 0;
 	sequence: BondSequenceStep[] = [];
@@ -41,16 +22,11 @@ export class BondSequencer {
 		this.cycleAlternateState.clear();
 	}
 
-	/** Jump directly to a stage's stop with no bypass footage (e.g. first load). */
 	enterStage(animate: Animate, stageIndex: number) {
 		this.manualOverride = false;
 		this.applyStage(animate, stageIndex);
 	}
 
-	/**
-	 * Advance from the current stage to the next, playing bypass footage en
-	 * route. Returns false (no-op) if there are no stages to advance through.
-	 */
 	advance(animate: Animate): boolean {
 		if (animate.groups.length === 0) {
 			return false;
@@ -62,13 +38,6 @@ export class BondSequencer {
 		return true;
 	}
 
-	/**
-	 * A manual (checkbox) selection is taking over playback. Re-anchors the
-	 * stage index to wherever `name` actually lives so a subsequent
-	 * `advance()` continues from there, rather than from whatever stage
-	 * auto-advance last left off at. If `name` isn't part of any stage, the
-	 * stage index is left untouched.
-	 */
 	takeManualControl(animate: Animate, name: string) {
 		this.manualOverride = true;
 

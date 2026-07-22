@@ -202,7 +202,6 @@ export class ModelState {
 		this.skinUpdate = true;
 	}
 
-	/** Restart the bond from stage 0 and auto-advance through every stage. */
 	public startBondAutoPlay() {
 		if (!store.skeletonData) {
 			return;
@@ -222,13 +221,6 @@ export class ModelState {
 		this.skinUpdate = true;
 	}
 
-	/**
-	 * Called whenever the currently playing bond track settles (nothing
-	 * queued after it - either a single looping stop or the last clip of a
-	 * loop chain). While auto-playing, advances to the next stage instead of
-	 * letting it loop, stopping the walkthrough once the last stage is
-	 * reached so it can loop normally like any other stage.
-	 */
 	private tryAdvanceAutoPlay(entry: TrackEntry): boolean {
 		if (
 			store.view !== "bond" ||
@@ -286,12 +278,6 @@ export class ModelState {
 		}));
 	}
 
-	/**
-	 * Keeps the manual checkbox picker's checked state in sync with whatever
-	 * is actually playing on the bond's main track, since auto-sequencing
-	 * drives playback through `bondSequencer`/native Spine queueing rather
-	 * than `this.animations`.
-	 */
 	public syncBondCheckboxState(animationState: AnimationState) {
 		if (store.view !== "bond") {
 			return;
@@ -313,10 +299,6 @@ export class ModelState {
 		}
 	}
 
-	/**
-	 * Drives the bond progress meter: matches the live Spine track to a bar
-	 * in `bondSequenceBars` and computes its fill fraction each frame.
-	 */
 	public updateBondPlaybackProgress(animationState: AnimationState) {
 		if (store.view !== "bond" || this.bondManualOverride) {
 			return;
@@ -337,14 +319,6 @@ export class ModelState {
 		this.bondBarProgress = progress;
 	}
 
-	/**
-	 * Keeps a multi-clip bond stop (e.g. 21_Loop_ani/21_Loop_ani2) cycling
-	 * forever: Spine's native `loop` only repeats a single clip, so once the
-	 * last clip in the chain completes with nothing queued after it, the
-	 * whole chain is re-queued from the top. Wired to `AnimationStateListener
-	 * .complete`, which fires exactly once per non-looping clip, rather than
-	 * polled per-frame.
-	 */
 	public handleBondAnimationComplete(
 		entry: TrackEntry,
 		animationState: AnimationState

@@ -111,7 +111,7 @@ describe("BondSequencer", () => {
 		expect(sequencer.sequence).toEqual([]);
 	});
 
-	it("a stop with numbered variants chains all of them into one big loop instead of picking a single alternate", () => {
+	it("a stop with numbered variants picks a single alternate, rotating on each visit (CHAIN_ANIMATION_VARIANTS is off)", () => {
 		const animate = new Animate(
 			anims(["00_idle", "20_loop_1", "20_loop_2", "20_loop_3"])
 		);
@@ -120,22 +120,13 @@ describe("BondSequencer", () => {
 		sequencer.enterStage(animate, 0);
 		sequencer.advance(animate);
 
-		expect(describeSequence(sequencer)).toBe(
-			"20_loop_1 -> 20_loop_2 -> 20_loop_3"
-		);
-		expect(sequencer.loopChain).toEqual([
-			"20_loop_1",
-			"20_loop_2",
-			"20_loop_3",
-		]);
+		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
+		expect(sequencer.loopChain).toEqual([]);
 
-		// leaving and re-entering the stage produces the same chain every time
-		// - there's no per-visit rotation state left to advance
+		// leaving and re-entering the stage rotates to the next alternate
 		sequencer.advance(animate); // -> 00_idle (wrap)
-		sequencer.advance(animate); // -> back to the chain
-		expect(describeSequence(sequencer)).toBe(
-			"20_loop_1 -> 20_loop_2 -> 20_loop_3"
-		);
+		sequencer.advance(animate); // -> back to the stop, next alternate
+		expect(describeSequence(sequencer)).toBe("20_loop_2 STOP");
 	});
 
 	it("a single-clip stop keeps native looping and reports an empty loopChain", () => {
@@ -229,10 +220,11 @@ describe("BondSequencer", () => {
 		expect(sequencer.manualOverride).toBe(false);
 		expect(sequencer.loopChain).toEqual([]);
 
-		// re-entering stage 1 after a reset produces the same chain again
+		// re-entering stage 1 picks the same alternate again - reset() clears
+		// the per-visit rotation memory
 		sequencer.enterStage(animate, 0);
 		sequencer.advance(animate);
-		expect(describeSequence(sequencer)).toBe("20_loop_1 -> 20_loop_2");
+		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
 	});
 
 	it("cycle-alternate memory for bypass footage is cleared by reset()", () => {

@@ -6,6 +6,9 @@ export interface BondSequenceStep {
 	loop: boolean;
 }
 
+/** Off for now - stop variants pick one alternate instead of chaining. */
+export const CHAIN_ANIMATION_VARIANTS = false;
+
 export class BondSequencer {
 	stageIndex = 0;
 	sequence: BondSequenceStep[] = [];
@@ -58,18 +61,30 @@ export class BondSequencer {
 			fromStageIndex !== undefined
 				? this.outgoingBypass(animate, fromStageIndex)
 				: [];
-		const stopChain = animate.groups[stageIndex]?.[0]?.animations ?? [];
+		const stopAnimations = animate.groups[stageIndex]?.[0]?.animations ?? [];
 
 		this.stageIndex = stageIndex;
-		this.loopChain =
-			stopChain.length > 1 ? stopChain.map((a) => a.name) : [];
-		this.sequence = [
-			...bypass,
-			...stopChain.map((animation) => ({
-				animationName: animation.name,
-				loop: stopChain.length === 1,
-			})),
-		];
+
+		if (CHAIN_ANIMATION_VARIANTS && stopAnimations.length > 1) {
+			this.loopChain = stopAnimations.map((a) => a.name);
+			this.sequence = [
+				...bypass,
+				...stopAnimations.map((animation) => ({
+					animationName: animation.name,
+					loop: false,
+				})),
+			];
+			return;
+		}
+
+		this.loopChain = [];
+		const stop =
+			stopAnimations.length > 0
+				? this.pickCycleAlternate(`${stageIndex}-0`, stopAnimations)
+				: undefined;
+		this.sequence = stop
+			? [...bypass, { animationName: stop.name, loop: true }]
+			: bypass;
 	}
 
 	private outgoingBypass(

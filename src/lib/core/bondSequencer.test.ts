@@ -1,0 +1,223 @@
+import { describe, expect, it } from "vitest";
+import type { Animation } from "@esotericsoftware/spine-core";
+import { Animate } from "./animate";
+import { BondSequencer } from "./bondSequencer";
+
+function anims(names: string[]): Animation[] {
+	return names.map((name) => ({ name }) as Animation);
+}
+
+function describeSequence(sequencer: BondSequencer): string {
+	return sequencer.sequence
+		.map((s) => (s.loop ? `${s.animationName} STOP` : s.animationName))
+		.join(" -> ");
+}
+
+describe("BondSequencer", () => {
+	it("enters the first stage directly with no bypass footage", () => {
+		const animate = new Animate(anims(["00_idle", "20_loop"]));
+		const sequencer = new BondSequencer();
+
+		sequencer.enterStage(animate, 0);
+
+		expect(describeSequence(sequencer)).toBe("00_idle STOP");
+		expect(sequencer.stageIndex).toBe(0);
+	});
+
+	describe("regression: stop point direction", () => {
+		// Previously the sequencer treated the *last* entry of a group as
+		// the stop point and everything before it as bypass footage. That's
+		// backwards: `Animate.groupAnimations`'s `flush` always makes the
+		// animation being stopped on the *first* entry of a new group, and
+		// anything appended after it is footage that plays while *leaving*
+		// that stage. Getting this backwards meant the engine stopped one
+		// step too early (on a transition clip) and let the real resting
+		// animation flash by as unlooped bypass content.
+
+		it("A0150-style: stops on 01_Idle_ani, then advancing plays 02_Idle_in_ani on the way to landing on 10_Idle_ani", () => {
+			const animate = new Animate(
+				anims([
+					"00_idle",
+					"01_Idle_ani",
+					"02_Idle_in_ani",
+					"10_Idle_ani",
+					"11_Idle_in_ani",
+					"20_loop",
+				])
+			);
+			const sequencer = new BondSequencer();
+
+			sequencer.enterStage(animate, 0);
+			expect(describeSequence(sequencer)).toBe("00_idle STOP");
+
+			sequencer.advance(animate);
+			expect(describeSequence(sequencer)).toBe("01_Idle_ani STOP");
+
+			sequencer.advance(animate);
+			expect(describeSequence(sequencer)).toBe(
+				"02_Idle_in_ani -> 10_Idle_ani STOP"
+			);
+		});
+
+		it("A0168-style: stops on 22_Loop_ani, then advancing plays both finish clips on the way to landing on 40_End_ani", () => {
+			const animate = new Animate(
+				anims([
+					"00_idle",
+					"20_loop",
+					"21_loop_ani",
+					"22_loop_ani",
+					"30_finish_ani",
+					"30_finish_out_ani",
+					"40_end_ani",
+				])
+			);
+			const sequencer = new BondSequencer();
+
+			sequencer.enterStage(animate, 0); // 00_idle
+			sequencer.advance(animate); // -> 20_loop
+			sequencer.advance(animate); // -> 21_loop_ani
+			sequencer.advance(animate); // -> 22_loop_ani
+			expect(describeSequence(sequencer)).toBe("22_loop_ani STOP");
+
+			sequencer.advance(animate);
+			expect(describeSequence(sequencer)).toBe(
+				"30_finish_ani -> 30_finish_out_ani -> 40_end_ani STOP"
+			);
+		});
+	});
+
+	it("advance() wraps back around to stage 0 after the last stage", () => {
+		const animate = new Animate(anims(["00_idle", "20_loop", "40_end"]));
+		const sequencer = new BondSequencer();
+
+		sequencer.enterStage(animate, 0);
+		sequencer.advance(animate); // -> 20_loop
+		sequencer.advance(animate); // -> 40_end
+		sequencer.advance(animate); // wraps -> 00_idle
+
+		expect(sequencer.stageIndex).toBe(0);
+		expect(describeSequence(sequencer)).toBe("00_idle STOP");
+	});
+
+	it("handles a completely empty animation list without crashing", () => {
+		// Animate.groupAnimations always pushes at least one (possibly
+		// empty) group via its trailing unconditional flush(), so this
+		// exercises the "no stop animation available" path rather than an
+		// actual empty `groups` array.
+		const animate = new Animate([]);
+		const sequencer = new BondSequencer();
+
+		expect(() => sequencer.advance(animate)).not.toThrow();
+		expect(sequencer.sequence).toEqual([]);
+	});
+
+	it("cycle alternates rotate on each visit to the same stage instead of always repeating the first option", () => {
+		const animate = new Animate(
+			anims(["00_idle", "20_loop_1", "20_loop_2", "20_loop_3"])
+		);
+		const sequencer = new BondSequencer();
+
+		sequencer.enterStage(animate, 0);
+		sequencer.advance(animate);
+		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
+
+		// leave and come back to the same stage a few times
+		sequencer.advance(animate); // -> 00_idle (wrap)
+		sequencer.advance(animate); // -> 20_loop, should pick the 2nd alternate
+		expect(describeSequence(sequencer)).toBe("20_loop_2 STOP");
+
+		sequencer.advance(animate);
+		sequencer.advance(animate);
+		expect(describeSequence(sequencer)).toBe("20_loop_3 STOP");
+
+		sequencer.advance(animate);
+		sequencer.advance(animate);
+		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
+	});
+
+	describe("regression: manual (checkbox) control", () => {
+		it("takeManualControl re-anchors the stage index to wherever the picked animation actually lives", () => {
+			const animate = new Animate(
+				anims(["00_idle", "20_loop", "21_loop_ani", "40_end"])
+			);
+			const sequencer = new BondSequencer();
+
+			sequencer.enterStage(animate, 0);
+			sequencer.advance(animate); // -> stage 1 (20_loop)
+			sequencer.advance(animate); // -> stage 2 (21_loop_ani)
+			expect(sequencer.stageIndex).toBe(2);
+
+			// user manually clicks the checkbox for the very first idle
+			sequencer.takeManualControl(animate, "00_idle");
+
+			expect(sequencer.manualOverride).toBe(true);
+			expect(sequencer.stageIndex).toBe(0);
+		});
+
+		it("regression: advancing after a manual pick continues from the picked stage, not from wherever auto-advance last left off", () => {
+			const animate = new Animate(
+				anims(["00_idle", "20_loop", "21_loop_ani", "40_end"])
+			);
+			const sequencer = new BondSequencer();
+
+			sequencer.enterStage(animate, 0);
+			sequencer.advance(animate); // -> stage 1
+			sequencer.advance(animate); // -> stage 2 (stale index the bug used to stick with)
+
+			sequencer.takeManualControl(animate, "00_idle"); // manually back to idle
+
+			sequencer.advance(animate); // should go to stage 1 (20_loop), not stage 3
+
+			expect(sequencer.stageIndex).toBe(1);
+			expect(describeSequence(sequencer)).toBe("20_loop STOP");
+		});
+
+		it("advance() clears manualOverride, handing control back to the auto-sequencer", () => {
+			const animate = new Animate(anims(["00_idle", "20_loop"]));
+			const sequencer = new BondSequencer();
+
+			sequencer.enterStage(animate, 0);
+			sequencer.takeManualControl(animate, "00_idle");
+			expect(sequencer.manualOverride).toBe(true);
+
+			sequencer.advance(animate);
+			expect(sequencer.manualOverride).toBe(false);
+		});
+
+		it("leaves the stage index untouched if the picked animation isn't part of any stage", () => {
+			const animate = new Animate(anims(["00_idle", "20_loop"]));
+			const sequencer = new BondSequencer();
+
+			sequencer.enterStage(animate, 0);
+			sequencer.advance(animate); // -> stage 1
+
+			sequencer.takeManualControl(animate, "not_a_real_animation");
+
+			expect(sequencer.manualOverride).toBe(true);
+			expect(sequencer.stageIndex).toBe(1);
+		});
+	});
+
+	it("reset() clears stage, sequence, manual override, and cycle-alternate memory", () => {
+		const animate = new Animate(
+			anims(["00_idle", "20_loop_1", "20_loop_2"])
+		);
+		const sequencer = new BondSequencer();
+
+		sequencer.enterStage(animate, 0);
+		sequencer.advance(animate);
+		sequencer.takeManualControl(animate, "20_loop_1");
+
+		sequencer.reset();
+
+		expect(sequencer.stageIndex).toBe(0);
+		expect(sequencer.sequence).toEqual([]);
+		expect(sequencer.manualOverride).toBe(false);
+
+		// cycle-alternate memory should also be cleared: re-entering stage 1
+		// after a reset should pick the first alternate again
+		sequencer.enterStage(animate, 0);
+		sequencer.advance(animate);
+		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
+	});
+});

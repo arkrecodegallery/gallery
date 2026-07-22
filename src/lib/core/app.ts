@@ -75,11 +75,17 @@ export class App implements SpineCanvasApp {
 	}
 
 	setAnimation() {
+		const seenTracks = new Set<number>();
 		store.modelState
 			.getAnimation(this.skeletonData, this.animation, this.skeleton)
-			.forEach(({ trackIndex, animationName, loop }) =>
-				this.animation.setAnimation(trackIndex, animationName, loop)
-			);
+			.forEach(({ trackIndex, animationName, loop }) => {
+				if (seenTracks.has(trackIndex)) {
+					this.animation.addAnimation(trackIndex, animationName, loop);
+				} else {
+					seenTracks.add(trackIndex);
+					this.animation.setAnimation(trackIndex, animationName, loop);
+				}
+			});
 	}
 
 	centerModel(canvas: SpineCanvas) {
@@ -117,6 +123,9 @@ export class App implements SpineCanvasApp {
 		this.animation.update(delta);
 		this.animation.apply(this.skeleton);
 		this.skeleton.updateWorldTransform();
+
+		store.modelState.syncBondCheckboxState(this.animation);
+		store.modelState.updateBondPlaybackProgress(this.animation);
 	}
 
 	async reloadModel(canvas: SpineCanvas) {

@@ -1,4 +1,5 @@
 import type { Animation } from "@esotericsoftware/spine-core";
+import type { BondRule } from "./bondRules";
 
 type AnimationMode = "idle" | "loop" | "finish" | "end" | "bg" | "skip";
 
@@ -26,14 +27,18 @@ export class Animate {
 	readonly specials = ["hand", "lick", "slap", "kiss", "touch", "emo"];
 	readonly transitions = ["in", "out", "to", "off"];
 
-	constructor(animations: Animation[]) {
-		this.groupAnimations(animations);
+	constructor(animations: Animation[], rule?: BondRule) {
+		const filtered = rule?.skip?.length
+			? animations.filter((a) => !rule.skip!.includes(a.name))
+			: animations;
+		this.groupAnimations(filtered, rule?.rename);
 	}
 
-	groupAnimations(animations: Animation[]) {
+	groupAnimations(animations: Animation[], rename?: Record<string, string>) {
 		this.groups = [];
 		this.background = [];
 		let currentGroup: AnimationEntry[] = [];
+		let seenInitialIdle = false;
 
 		const getAnimation = (
 			index: number
@@ -48,7 +53,8 @@ export class Animate {
 			}
 
 			const animation = animations[index];
-			const name = this.parseName(animation.name);
+			const alias = rename?.[animation.name] ?? animation.name;
+			const name = this.parseName(alias);
 			return { animation: { animations: [animation] }, name };
 		};
 
@@ -67,7 +73,9 @@ export class Animate {
 		};
 
 		const addCycle = (animation: AnimationEntry) => {
-			currentGroup[0].animations.push(animation.animations[0]);
+			currentGroup[currentGroup.length - 1].animations.push(
+				animation.animations[0]
+			);
 		};
 
 		for (let i = 0; i < animations.length; i++) {
@@ -78,10 +86,10 @@ export class Animate {
 			if (name.mode === "skip") {
 				// skip outright
 				continue;
-			} 
-            
+			}
+
             // bg
-            else if (name.fullName === "90_BG") {
+            else if (name.fullName === "90_bg") {
 				// reliable bg channel
 				this.background.push(curr.animations[0]);
 			} else if (name.stage >= 8) {
@@ -101,18 +109,20 @@ export class Animate {
 
 			// idle
 			else if (name.mode === "idle") {
-				if (name.prefix === 0) {
+				if (!seenInitialIdle && name.prefix === 0) {
 					// stop on first idle
 					// first anim must be first idle
+					seenInitialIdle = true;
 					this.groups = [];
 					currentGroup = [];
 					currentGroup.push(curr);
 				} else if (
 					prev?.name.mode === "idle" &&
-					prev.name.prefix === name.prefix
+					prev.name.prefix === name.prefix &&
+					getFullNameNoSuffix(prev.name) === getFullNameNoSuffix(name)
 				) {
-					// skip repeat idles
-					continue;
+					// repeat idle of the same name - alternate to cycle between
+					addCycle(curr);
 				} else if (next?.name.mode === "loop") {
 					// stop on idle before a loop
 					flush(curr);
@@ -149,21 +159,18 @@ export class Animate {
 
 			// finish
 			else if (name.mode === "finish") {
-				if (
-					prev?.name.mode === "finish" &&
-					name.fullName.startsWith(prev.name.fullName)
-				) {
-					// skip invalid finish
-					continue;
-				}
-				// always bypass a finish
+				// always bypass a finish, only ever plays once
 				currentGroup.push(curr);
 			}
 
 			// end
 			else if (name.mode === "end") {
-				if (prev?.name.mode === "end") {
-					// cycle among following ends
+				if (
+					prev?.name.mode === "end" &&
+					prev.name.prefix === name.prefix &&
+					getFullNameNoSuffix(prev.name) === getFullNameNoSuffix(name)
+				) {
+					// cycle among related ends
 					addCycle(curr);
 				} else {
 					// always stop on an end

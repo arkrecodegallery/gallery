@@ -7,6 +7,7 @@
 	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 	import { Button } from "./ui/button";
 	import { ClapperboardIcon, ShirtIcon } from "@lucide/svelte";
+	import BondProgressMeter from "$lib/components/bond-progress-meter.svelte";
 
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
@@ -124,7 +125,7 @@
 				/>
 			</Kbd.Group>
 		</div>
-		{@render progress()}
+		<BondProgressMeter />
 	</div>
 {/snippet}
 
@@ -135,14 +136,5 @@
 		: ''}"
 >
 	{@render children()}
-	{@render progress("!mt-1")}
+	<BondProgressMeter className="!mt-1" />
 </div>
-
-{#snippet progress(className?: string)}
-	{@const disabled = store.view === "collection"}
-	<div
-		class="h-1 w-full {disabled
-			? 'bg-disabled'
-			: 'bg-foreground'} rounded-full mt-2 {className}"
-	></div>
-{/snippet}

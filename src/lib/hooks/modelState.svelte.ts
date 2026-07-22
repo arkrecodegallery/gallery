@@ -10,6 +10,9 @@ import type {
 import { keybinds } from "$lib/core/keybinds";
 import { addKeydownListener } from "$lib/utils";
 import { Animate } from "$lib/core/animate";
+import { getBondRule } from "$lib/core/bondRules";
+import { BondSequencer, type BondSequenceStep } from "$lib/core/bondSequencer";
+import { computeBarProgress } from "$lib/core/bondProgress";
 
 function fromLocalStorage(item: string): number {
 	const value = localStorage.getItem(item);
@@ -34,6 +37,14 @@ export class ModelState {
 	bondAnimationIndex: number = $state(0);
 	modelUpdate: boolean = false;
 
+	bondStageIndex: number = $state(0);
+	bondStageCount: number = $state(0);
+	bondSequenceBars: BondSequenceStep[] = $state([]);
+	bondManualOverride: boolean = $state(false);
+	bondActiveBarIndex: number = $state(-1);
+	bondBarProgress: number = $state(0);
+
+	private bondSequencer = new BondSequencer();
 	private lastBondSkeletonData?: SkeletonData;
 
 	constructor() {
@@ -131,6 +142,16 @@ export class ModelState {
 	}
 
 	public setAnimationChecked(name: string, checked: boolean, additive = false) {
+		if (store.view === "bond") {
+			// manual selection takes over from the auto-sequencer until the
+			// next stage advance hands control back
+			this.bondSequencer.manualOverride = true;
+
+			if (checked) {
+				this.anchorBondSequencer(name);
+			}
+		}
+
 		if (!additive) {
 			this.animations = checked ? { [name]: 0 } : {};
 			this.animationUpdate = true;
@@ -158,30 +179,100 @@ export class ModelState {
 			return;
 		}
 
-		const animate = new Animate(store.skeletonData.animations);
-		if (animate.groups.length === 0) {
+		const rule = getBondRule(this.getAbsoluteEntry().id);
+		if (rule.disable) {
 			return;
 		}
 
-		const currentIndex = this.findBondStageIndex(animate);
-		const nextIndex = (currentIndex + 1 + animate.groups.length) % animate.groups.length;
-		this.setBondStage(animate, nextIndex);
+		const animate = new Animate(store.skeletonData.animations, rule);
+		if (!this.bondSequencer.advance(animate)) {
+			return;
+		}
+		this.syncBondSequenceMeta(animate);
+
 		this.animationUpdate = true;
 		this.skinUpdate = true;
 	}
 
-	private findBondStageIndex(animate: Animate): number {
-		const active = new Set(Object.keys(this.animations));
-		return animate.groups.findIndex((group) =>
-			group.some((entry) => entry.animations.some((a) => active.has(a.name)))
-		);
+	private anchorBondSequencer(name: string) {
+		if (!store.skeletonData) {
+			return;
+		}
+
+		const rule = getBondRule(this.getAbsoluteEntry().id);
+		if (rule.disable) {
+			return;
+		}
+
+		const animate = new Animate(store.skeletonData.animations, rule);
+		this.bondSequencer.takeManualControl(animate, name);
+		this.syncBondSequenceMeta(animate);
 	}
 
-	private setBondStage(animate: Animate, stageIndex: number) {
-		const group = animate.groups[stageIndex] ?? [];
-		const representative = group[0]?.animations[0];
+	private syncBondSequenceMeta(animate: Animate) {
+		this.bondStageIndex = this.bondSequencer.stageIndex;
+		this.bondStageCount = animate.groups.length;
+		this.bondSequenceBars = this.bondSequencer.sequence;
+		this.bondManualOverride = this.bondSequencer.manualOverride;
+	}
 
-		this.animations = representative ? { [representative.name]: 0 } : {};
+	private manualBondAnimations(): Animation[] {
+		return Object.entries(this.animations).map(([animationName, trackIndex]) => ({
+			animationName,
+			trackIndex,
+			loop: true,
+		}));
+	}
+
+	/**
+	 * Keeps the manual checkbox picker's checked state in sync with whatever
+	 * is actually playing on the bond's main track, since auto-sequencing
+	 * drives playback through `bondSequencer`/native Spine queueing rather
+	 * than `this.animations`.
+	 */
+	public syncBondCheckboxState(animationState: AnimationState) {
+		if (store.view !== "bond") {
+			return;
+		}
+
+		const rule = getBondRule(this.getAbsoluteEntry().id);
+		if (rule.disable || this.bondSequencer.manualOverride) {
+			return;
+		}
+
+		const current = animationState.getCurrent(0)?.animation?.name;
+		if (!current) {
+			return;
+		}
+
+		const keys = Object.keys(this.animations);
+		if (keys.length !== 1 || keys[0] !== current) {
+			this.animations = { [current]: 0 };
+		}
+	}
+
+	/**
+	 * Drives the bond progress meter: matches the live Spine track to a bar
+	 * in `bondSequenceBars` and computes its fill fraction each frame.
+	 */
+	public updateBondPlaybackProgress(animationState: AnimationState) {
+		if (store.view !== "bond" || this.bondManualOverride) {
+			return;
+		}
+
+		const current = animationState.getCurrent(0);
+		const { activeBarIndex, progress } = computeBarProgress(
+			this.bondSequenceBars,
+			current?.animation
+				? {
+						animationName: current.animation.name,
+						trackTime: current.trackTime,
+						duration: current.animation.duration,
+					}
+				: undefined
+		);
+		this.bondActiveBarIndex = activeBarIndex;
+		this.bondBarProgress = progress;
 	}
 
 	public getAnimation(
@@ -190,24 +281,32 @@ export class ModelState {
 		skeleton: Skeleton
 	): Animation[] {
 		if (store.view === "bond") {
+			const rule = getBondRule(this.getAbsoluteEntry().id);
+
+			if (rule.disable) {
+				return this.manualBondAnimations();
+			}
+
 			animationState.clearTracks();
 			skeleton.setToSetupPose();
 
 			if (this.lastBondSkeletonData !== skeletonData) {
 				this.lastBondSkeletonData = skeletonData;
-				this.setBondStage(new Animate(skeletonData.animations), 0);
+				this.bondSequencer.reset();
+				const animate = new Animate(skeletonData.animations, rule);
+				this.bondSequencer.enterStage(animate, 0);
+				this.syncBondSequenceMeta(animate);
 			}
 
-			const animations: Animation[] = [];
-			for (const [anim, track] of Object.entries(this.animations)) {
-				animations.push({
-					animationName: anim,
-					trackIndex: track,
-					loop: true,
-				});
+			if (this.bondSequencer.manualOverride) {
+				return this.manualBondAnimations();
 			}
 
-			return animations;
+			return this.bondSequencer.sequence.map((step) => ({
+				trackIndex: 0,
+				animationName: step.animationName,
+				loop: step.loop,
+			}));
 		}
 
 		const animations: Animation[] = [];

@@ -16,11 +16,20 @@ export interface BondSequenceStep {
  * new group with the animation being stopped on). Everything after index 0
  * in a group is bypass footage that plays while *leaving* that stage on the
  * way to the next stage's stop - not part of the stage being entered.
+ *
+ * A stop can itself hold multiple numbered-variant clips (e.g.
+ * `21_Loop_ani`/`21_Loop_ani2`, see `Animate.isVariantContinuation`). Those
+ * play back to back as one continuous loop rather than picking a single
+ * alternate - `loopChain` names the clips in that loop so the caller can
+ * keep re-queuing it every lap (Spine's native `loop` only repeats a single
+ * clip). `loopChain` is empty whenever a stop is just one clip, since native
+ * `loop: true` already covers that case.
  */
 export class BondSequencer {
 	stageIndex = 0;
 	sequence: BondSequenceStep[] = [];
 	manualOverride = false;
+	loopChain: string[] = [];
 
 	private cycleAlternateState = new Map<string, number>();
 
@@ -28,6 +37,7 @@ export class BondSequencer {
 		this.stageIndex = 0;
 		this.sequence = [];
 		this.manualOverride = false;
+		this.loopChain = [];
 		this.cycleAlternateState.clear();
 	}
 
@@ -79,23 +89,18 @@ export class BondSequencer {
 			fromStageIndex !== undefined
 				? this.outgoingBypass(animate, fromStageIndex)
 				: [];
-		const stop = this.stopAnimation(animate, stageIndex);
+		const stopChain = animate.groups[stageIndex]?.[0]?.animations ?? [];
 
 		this.stageIndex = stageIndex;
-		this.sequence = stop
-			? [...bypass, { animationName: stop.name, loop: true }]
-			: bypass;
-	}
-
-	private stopAnimation(
-		animate: Animate,
-		stageIndex: number
-	): SpineAnimation | undefined {
-		const stopEntry = animate.groups[stageIndex]?.[0];
-		if (!stopEntry) {
-			return undefined;
-		}
-		return this.pickCycleAlternate(`${stageIndex}-0`, stopEntry.animations);
+		this.loopChain =
+			stopChain.length > 1 ? stopChain.map((a) => a.name) : [];
+		this.sequence = [
+			...bypass,
+			...stopChain.map((animation) => ({
+				animationName: animation.name,
+				loop: stopChain.length === 1,
+			})),
+		];
 	}
 
 	private outgoingBypass(

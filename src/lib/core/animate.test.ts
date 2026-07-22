@@ -232,6 +232,42 @@ describe("Animate.groupAnimations", () => {
 			]);
 		});
 
+		it("H135-style: a suffixless loop and its explicitly-numbered variant chain into one big loop", () => {
+			const animate = new Animate(
+				anims([
+					"00_idle",
+					"20_loop",
+					"21_loop_ani",
+					"21_loop_ani2",
+					"30_finish_ani",
+					"40_end_ani",
+				])
+			);
+			expect(groupNames(animate)).toEqual([
+				[["00_idle"]],
+				[["20_loop"]],
+				[["21_loop_ani", "21_loop_ani2"], ["30_finish_ani"]],
+				[["40_end_ani"]],
+			]);
+		});
+
+		it("a three-way numbered variant chain (implicit 1, explicit 2 and 3) all merge into one stop", () => {
+			const animate = new Animate(
+				anims([
+					"00_idle",
+					"20_loop_ani",
+					"20_loop_ani2",
+					"20_loop_ani3",
+					"40_end",
+				])
+			);
+			expect(groupNames(animate)).toEqual([
+				[["00_idle"]],
+				[["20_loop_ani", "20_loop_ani2", "20_loop_ani3"]],
+				[["40_end"]],
+			]);
+		});
+
 		it("H115/A0145-style: bondRules.rename keeps 01_Idle_hand_ani as its own stop and cycles 40_End_ani/41_End_ani as alternates", () => {
 			// exact animation order pulled from the real A0145.skel via
 			// scripts/extract-skel-animations.test.ts (see skel-animations skill)

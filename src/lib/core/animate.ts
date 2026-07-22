@@ -12,8 +12,6 @@ interface AnimationName {
 
 	mode: AnimationMode;
 	transition: boolean;
-
-	suffix: number;
 }
 
 interface AnimationEntry {
@@ -56,12 +54,6 @@ export class Animate {
 			const alias = rename?.[animation.name] ?? animation.name;
 			const name = this.parseName(alias);
 			return { animation: { animations: [animation] }, name };
-		};
-
-		const getFullNameNoSuffix = (name: AnimationName): string => {
-			return name.suffix === 0
-				? name.fullName
-				: name.fullName.substring(0, name.fullName.length - 1);
 		};
 
 		const flush = (next?: AnimationEntry) => {
@@ -118,10 +110,9 @@ export class Animate {
 					currentGroup.push(curr);
 				} else if (
 					prev?.name.mode === "idle" &&
-					prev.name.prefix === name.prefix &&
-					getFullNameNoSuffix(prev.name) === getFullNameNoSuffix(name)
+					this.isVariantContinuation(prev.name, name)
 				) {
-					// repeat idle of the same name - alternate to cycle between
+					// numbered variant of the same idle - part of one big loop
 					addCycle(curr);
 				} else if (next?.name.mode === "loop") {
 					// stop on idle before a loop
@@ -139,18 +130,10 @@ export class Animate {
 			else if (name.mode === "loop") {
 				if (
 					prev?.name.mode === "loop" &&
-					(Math.abs(prev.name.suffix - name.suffix) === 1 ||
-						prev.name.prefix === name.prefix)
+					this.isVariantContinuation(prev.name, name)
 				) {
-					const prevFull = getFullNameNoSuffix(prev.name);
-					const currFull = getFullNameNoSuffix(name);
-					if (prevFull === currFull) {
-						// cycle among related loops
-						addCycle(curr);
-					} else {
-						// skip seeming related but actually invalid loops
-						continue;
-					}
+					// numbered variant of the same loop - part of one big loop
+					addCycle(curr);
 				} else {
 					// always stop on loops
 					flush(curr);
@@ -167,10 +150,9 @@ export class Animate {
 			else if (name.mode === "end") {
 				if (
 					prev?.name.mode === "end" &&
-					prev.name.prefix === name.prefix &&
-					getFullNameNoSuffix(prev.name) === getFullNameNoSuffix(name)
+					this.isVariantContinuation(prev.name, name)
 				) {
-					// cycle among related ends
+					// numbered variant of the same end - part of one big loop
 					addCycle(curr);
 				} else {
 					// always stop on an end
@@ -194,9 +176,6 @@ export class Animate {
 			this.hasPart(fullName, trans)
 		);
 
-		let suffix = Number(fullName[fullName.length - 1]);
-		suffix = Number.isNaN(suffix) ? 0 : suffix;
-
 		return {
 			fullName,
 
@@ -206,9 +185,31 @@ export class Animate {
 
 			mode,
 			transition,
-
-			suffix,
 		};
+	}
+
+	/**
+	 * The name of the next animation in a numbered-variant chain (e.g.
+	 * "21_loop_ani" -> "21_loop_ani2" -> "21_loop_ani3"). A missing trailing
+	 * number is treated as variant 1.
+	 */
+	nextVariantName(fullName: string): string {
+		const match = fullName.match(/\d+$/);
+		if (!match) {
+			return `${fullName}2`;
+		}
+
+		const digits = match[0];
+		const next = Number(digits) + 1;
+		return `${fullName.slice(0, fullName.length - digits.length)}${next}`;
+	}
+
+	/** Whether `curr` is the same clip repeated, or the next in its numbered-variant chain. */
+	isVariantContinuation(prev: AnimationName, curr: AnimationName): boolean {
+		return (
+			curr.fullName === prev.fullName ||
+			curr.fullName === this.nextVariantName(prev.fullName)
+		);
 	}
 
 	parseAnimationMode(fullName: string, mode: string): AnimationMode {

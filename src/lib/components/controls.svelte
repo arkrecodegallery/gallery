@@ -117,7 +117,7 @@
 			<Kbd.Group>
 				<Key
 					key={keybinds.Cutscene}
-					disabled={store.view !== "skill"}
+					disabled={store.view !== "skill" && store.view !== "bond"}
 				/>
 				<Key
 					key={keybinds.Touch}

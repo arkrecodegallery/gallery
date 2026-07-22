@@ -43,6 +43,7 @@ export class ModelState {
 	bondManualOverride: boolean = $state(false);
 	bondActiveBarIndex: number = $state(-1);
 	bondBarProgress: number = $state(0);
+	bondAutoPlay: boolean = $state(false);
 
 	private bondSequencer = new BondSequencer();
 	private lastBondSkeletonData?: SkeletonData;
@@ -110,9 +111,15 @@ export class ModelState {
 	handleAnimationChange(key: string) {
 		switch (key) {
 			case keybinds.Cutscene:
-				if (store.view === "skill" || store.view === "bond") {
+				if (store.view === "skill") {
 					this.cutScene = true;
 					this.animationUpdate = true;
+				} else if (store.view === "bond") {
+					const entry = this.getAbsoluteEntry();
+					const presentation = entry.bond![this.cycleIndex];
+					if (presentation.kind === "animated") {
+						this.startBondAutoPlay();
+					}
 				}
 				break;
 			case keybinds.Touch:
@@ -146,6 +153,7 @@ export class ModelState {
 			// manual selection takes over from the auto-sequencer until the
 			// next stage advance hands control back
 			this.bondSequencer.manualOverride = true;
+			this.bondAutoPlay = false;
 
 			if (checked) {
 				this.anchorBondSequencer(name);
@@ -192,6 +200,60 @@ export class ModelState {
 
 		this.animationUpdate = true;
 		this.skinUpdate = true;
+	}
+
+	/** Restart the bond from stage 0 and auto-advance through every stage. */
+	public startBondAutoPlay() {
+		if (!store.skeletonData) {
+			return;
+		}
+
+		const rule = getBondRule(this.getAbsoluteEntry().id);
+		if (rule.disable) {
+			return;
+		}
+
+		const animate = new Animate(store.skeletonData.animations, rule);
+		this.bondSequencer.enterStage(animate, 0);
+		this.bondAutoPlay = true;
+		this.syncBondSequenceMeta(animate);
+
+		this.animationUpdate = true;
+		this.skinUpdate = true;
+	}
+
+	/**
+	 * Called whenever the currently playing bond track settles (nothing
+	 * queued after it - either a single looping stop or the last clip of a
+	 * loop chain). While auto-playing, advances to the next stage instead of
+	 * letting it loop, stopping the walkthrough once the last stage is
+	 * reached so it can loop normally like any other stage.
+	 */
+	private tryAdvanceAutoPlay(entry: TrackEntry): boolean {
+		if (
+			store.view !== "bond" ||
+			!this.bondAutoPlay ||
+			this.bondManualOverride ||
+			entry.next !== null ||
+			!store.skeletonData
+		) {
+			return false;
+		}
+
+		const rule = getBondRule(this.getAbsoluteEntry().id);
+		if (rule.disable) {
+			this.bondAutoPlay = false;
+			return false;
+		}
+
+		const animate = new Animate(store.skeletonData.animations, rule);
+		if (this.bondSequencer.stageIndex >= animate.groups.length - 1) {
+			this.bondAutoPlay = false;
+			return false;
+		}
+
+		this.advanceBondStage();
+		return true;
 	}
 
 	private anchorBondSequencer(name: string) {
@@ -275,6 +337,45 @@ export class ModelState {
 		this.bondBarProgress = progress;
 	}
 
+	/**
+	 * Keeps a multi-clip bond stop (e.g. 21_Loop_ani/21_Loop_ani2) cycling
+	 * forever: Spine's native `loop` only repeats a single clip, so once the
+	 * last clip in the chain completes with nothing queued after it, the
+	 * whole chain is re-queued from the top. Wired to `AnimationStateListener
+	 * .complete`, which fires exactly once per non-looping clip, rather than
+	 * polled per-frame.
+	 */
+	public handleBondAnimationComplete(
+		entry: TrackEntry,
+		animationState: AnimationState
+	) {
+		if (this.tryAdvanceAutoPlay(entry)) {
+			return;
+		}
+		this.handleBondLoopComplete(entry, animationState);
+	}
+
+	private handleBondLoopComplete(
+		entry: TrackEntry,
+		animationState: AnimationState
+	) {
+		if (store.view !== "bond" || this.bondManualOverride) {
+			return;
+		}
+
+		const chain = this.bondSequencer.loopChain;
+		if (chain.length === 0 || entry.next !== null) {
+			return;
+		}
+		if (entry.animation?.name !== chain[chain.length - 1]) {
+			return;
+		}
+
+		for (const name of chain) {
+			animationState.addAnimation(0, name, false);
+		}
+	}
+
 	public getAnimation(
 		skeletonData: SkeletonData,
 		animationState: AnimationState,
@@ -282,6 +383,12 @@ export class ModelState {
 	): Animation[] {
 		if (store.view === "bond") {
 			const rule = getBondRule(this.getAbsoluteEntry().id);
+			const isNewSkeleton = this.lastBondSkeletonData !== skeletonData;
+			if (isNewSkeleton) {
+				this.lastBondSkeletonData = skeletonData;
+				this.bondSequencer.reset();
+				this.bondAutoPlay = false;
+			}
 
 			if (rule.disable) {
 				return this.manualBondAnimations();
@@ -290,9 +397,7 @@ export class ModelState {
 			animationState.clearTracks();
 			skeleton.setToSetupPose();
 
-			if (this.lastBondSkeletonData !== skeletonData) {
-				this.lastBondSkeletonData = skeletonData;
-				this.bondSequencer.reset();
+			if (isNewSkeleton) {
 				const animate = new Animate(skeletonData.animations, rule);
 				this.bondSequencer.enterStage(animate, 0);
 				this.syncBondSequenceMeta(animate);

@@ -55,6 +55,10 @@ export class App implements SpineCanvasApp {
 	configureScene(canvas: SpineCanvas) {
 		const animationStateData = new AnimationStateData(this.skeletonData);
 		this.animation = new AnimationState(animationStateData);
+		this.animation.addListener({
+			complete: (entry) =>
+				store.modelState.handleBondAnimationComplete(entry, this.animation),
+		});
 
 		this.setSkin();
 		this.setAnimation();

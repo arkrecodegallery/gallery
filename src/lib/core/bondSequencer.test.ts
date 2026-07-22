@@ -111,7 +111,7 @@ describe("BondSequencer", () => {
 		expect(sequencer.sequence).toEqual([]);
 	});
 
-	it("cycle alternates rotate on each visit to the same stage instead of always repeating the first option", () => {
+	it("a stop with numbered variants chains all of them into one big loop instead of picking a single alternate", () => {
 		const animate = new Animate(
 			anims(["00_idle", "20_loop_1", "20_loop_2", "20_loop_3"])
 		);
@@ -119,20 +119,34 @@ describe("BondSequencer", () => {
 
 		sequencer.enterStage(animate, 0);
 		sequencer.advance(animate);
-		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
 
-		// leave and come back to the same stage a few times
+		expect(describeSequence(sequencer)).toBe(
+			"20_loop_1 -> 20_loop_2 -> 20_loop_3"
+		);
+		expect(sequencer.loopChain).toEqual([
+			"20_loop_1",
+			"20_loop_2",
+			"20_loop_3",
+		]);
+
+		// leaving and re-entering the stage produces the same chain every time
+		// - there's no per-visit rotation state left to advance
 		sequencer.advance(animate); // -> 00_idle (wrap)
-		sequencer.advance(animate); // -> 20_loop, should pick the 2nd alternate
-		expect(describeSequence(sequencer)).toBe("20_loop_2 STOP");
+		sequencer.advance(animate); // -> back to the chain
+		expect(describeSequence(sequencer)).toBe(
+			"20_loop_1 -> 20_loop_2 -> 20_loop_3"
+		);
+	});
 
-		sequencer.advance(animate);
-		sequencer.advance(animate);
-		expect(describeSequence(sequencer)).toBe("20_loop_3 STOP");
+	it("a single-clip stop keeps native looping and reports an empty loopChain", () => {
+		const animate = new Animate(anims(["00_idle", "20_loop"]));
+		const sequencer = new BondSequencer();
 
+		sequencer.enterStage(animate, 0);
 		sequencer.advance(animate);
-		sequencer.advance(animate);
-		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
+
+		expect(describeSequence(sequencer)).toBe("20_loop STOP");
+		expect(sequencer.loopChain).toEqual([]);
 	});
 
 	describe("regression: manual (checkbox) control", () => {
@@ -198,7 +212,7 @@ describe("BondSequencer", () => {
 		});
 	});
 
-	it("reset() clears stage, sequence, manual override, and cycle-alternate memory", () => {
+	it("reset() clears stage, sequence, manual override, loop chain, and cycle-alternate memory", () => {
 		const animate = new Animate(
 			anims(["00_idle", "20_loop_1", "20_loop_2"])
 		);
@@ -213,11 +227,32 @@ describe("BondSequencer", () => {
 		expect(sequencer.stageIndex).toBe(0);
 		expect(sequencer.sequence).toEqual([]);
 		expect(sequencer.manualOverride).toBe(false);
+		expect(sequencer.loopChain).toEqual([]);
 
-		// cycle-alternate memory should also be cleared: re-entering stage 1
-		// after a reset should pick the first alternate again
+		// re-entering stage 1 after a reset produces the same chain again
 		sequencer.enterStage(animate, 0);
 		sequencer.advance(animate);
-		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
+		expect(describeSequence(sequencer)).toBe("20_loop_1 -> 20_loop_2");
+	});
+
+	it("cycle-alternate memory for bypass footage is cleared by reset()", () => {
+		// 01_idle_ani/01_idle_ani2 land in the bypass slot (index 1 of stage
+		// 0), not the stop slot, since 00_idle already claims index 0
+		const animate = new Animate(
+			anims(["00_idle", "01_idle_ani", "01_idle_ani2", "10_loop"])
+		);
+		const sequencer = new BondSequencer();
+
+		sequencer.enterStage(animate, 0);
+		sequencer.advance(animate);
+		expect(sequencer.sequence[0].animationName).toBe("01_idle_ani");
+
+		sequencer.reset();
+		sequencer.enterStage(animate, 0);
+		sequencer.advance(animate);
+
+		// without reset() clearing this memory, pickCycleAlternate would have
+		// rotated to "01_idle_ani2" on this second visit
+		expect(sequencer.sequence[0].animationName).toBe("01_idle_ani");
 	});
 });

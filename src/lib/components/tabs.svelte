@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { keybinds } from "$lib/core/keybinds";
+	import { keybinds } from "$lib/core/keybinds.svelte";
 	import type { ModelView } from "$lib/core/types";
 	import { store } from "$lib/hooks/state.svelte";
 	import Key from "./key.svelte";

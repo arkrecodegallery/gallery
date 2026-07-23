@@ -16,7 +16,7 @@
 	import Key from "./key.svelte";
 	import Icon from "@iconify/svelte";
 	import { onMount } from "svelte";
-	import { keybinds } from "$lib/core/keybinds";
+	import { keybinds } from "$lib/core/keybinds.svelte";
 	import Toggle from "./ui/toggle/toggle.svelte";
 	import type { Entry } from "$lib/core/types";
 	import { goto } from "$app/navigation";

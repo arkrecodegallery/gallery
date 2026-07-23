@@ -13,7 +13,7 @@ import type {
 	SkeletonData,
 	TrackEntry,
 } from "@esotericsoftware/spine-core";
-import { keybinds } from "$lib/core/keybinds";
+import { keybinds } from "$lib/core/keybinds.svelte";
 import { addKeydownListener } from "$lib/utils";
 import { BondViewState } from "./bondViewState.svelte";
 import { BondSequenceActions } from "./bondSequenceActions";

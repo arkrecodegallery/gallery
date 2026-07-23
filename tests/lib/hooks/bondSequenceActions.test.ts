@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach } from "vitest";
 import type { Animation, SkeletonData } from "@esotericsoftware/spine-core";
-import { store } from "./state.svelte";
-import { BondViewState } from "./bondViewState.svelte";
-import { BondSequenceActions } from "./bondSequenceActions";
+import { store } from "$lib/hooks/state.svelte";
+import { BondViewState } from "$lib/hooks/bondViewState.svelte";
+import { BondSequenceActions } from "$lib/hooks/bondSequenceActions";
 
 function anims(names: string[]): Animation[] {
 	return names.map((name) => ({ name }) as Animation);

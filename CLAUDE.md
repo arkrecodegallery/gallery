@@ -24,7 +24,7 @@ npm run dev:static      # vite dev server, static target ($platform → platform
 npm run build:static    # vite build, static target — run scripts/prepare-static-data.test.ts first
 npm run check           # svelte-kit sync + svelte-check (type checking); run once per BUILD_TARGET to check both
 npm run test             # vitest run (single run, not watch)
-npx vitest run src/lib/core/animate.test.ts   # run a single test file
+npx vitest run tests/lib/core/animate.test.ts   # run a single test file
 npx vitest run -t "test name substring"        # run tests matching a name
 npx vitest run --config scripts/vitest.scripts.config.ts scripts/prepare-static-data.test.ts
                         # regenerates static/gallery-data/ from TEST_GALLERY_DIR; run before build:static
@@ -112,3 +112,4 @@ The static target's data isn't the full local `containers/` dump — it's tree-s
 - UI primitives under `src/lib/components/ui/*` are shadcn-svelte components (see `components.json`) — treat them as generated/vendored; put app-specific logic in `src/lib/components/*.svelte` instead of editing the primitives unless you're intentionally updating the design system.
 - Hero/bond/collection identifiers throughout both backend and frontend are the game's raw string IDs (`H003`, `A0150`, `CG/...`, etc.) — don't assume they're numeric or database-generated.
 - `TODO.md` documents live known bugs (e.g. `TwoColorTint` blend mode rendering, partial animation playback on some heroes) and design notes on the bond system — check it before assuming an oddity is a regression you introduced.
+- Frontend unit tests live under top-level `tests/`, mirroring `src/lib`'s folder structure (e.g. `src/lib/core/animate.ts` → `tests/lib/core/animate.test.ts`), not alongside the source files they test. They import the code under test via the `$lib` alias (e.g. `import { Animate } from "$lib/core/animate"`) rather than relative paths, since they no longer sit next to it. `vitest.config.ts`'s `include` points at `tests/**/*.test.ts`. This is separate from `scripts/*.test.ts`, which aren't unit tests of other code but dormant diagnostic/data-prep scripts that use vitest as a runner (see `scripts/vitest.scripts.config.ts`) — those stay in `scripts/`.

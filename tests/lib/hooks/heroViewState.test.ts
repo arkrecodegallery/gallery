@@ -6,7 +6,7 @@ import type {
 	SkeletonData,
 	TrackEntry,
 } from "@esotericsoftware/spine-core";
-import { HeroViewState } from "./heroViewState.svelte";
+import { HeroViewState } from "$lib/hooks/heroViewState.svelte";
 
 function anims(names: string[]): Animation[] {
 	return names.map((name) => ({ name }) as Animation);

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getAnimationPrefix } from "./animationName";
+import { getAnimationPrefix } from "$lib/core/animationName";
 
 describe("getAnimationPrefix", () => {
 	it("parses the leading two-digit number", () => {

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Animation } from "@esotericsoftware/spine-core";
-import { getEligibleAnimationNames } from "./heroAnimations";
-import { findIdleAnimationName, POSSIBLE_IDLE_NAMES } from "./idleAnimation";
+import { getEligibleAnimationNames } from "$lib/core/heroAnimations";
+import { findIdleAnimationName, POSSIBLE_IDLE_NAMES } from "$lib/core/idleAnimation";
 
 function anims(names: string[]): Animation[] {
 	return names.map((name) => ({ name }) as Animation);

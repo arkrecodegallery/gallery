@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Animation } from "@esotericsoftware/spine-core";
-import { Animate } from "./animate";
-import { getBondRule } from "./bondRules";
+import { Animate } from "$lib/core/animate";
+import { getBondRule } from "$lib/core/bondRules";
 
 function anims(names: string[]): Animation[] {
 	return names.map((name) => ({ name }) as Animation);

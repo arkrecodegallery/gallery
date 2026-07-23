@@ -56,8 +56,8 @@ Output looks like:
 
 ## Why this is a separate vitest config
 
-`scripts/extract-skel-animations.test.ts` lives outside `src/`, so it's
-excluded from `vitest.config.ts`'s `include: ["src/**/*.test.ts"]` and never
+`scripts/extract-skel-animations.test.ts` lives outside `tests/`, so it's
+excluded from `vitest.config.ts`'s `include: ["tests/**/*.test.ts"]` and never
 runs as part of `npm run test`. It's a dormant diagnostic tool, not a test -
 invoke it explicitly via `scripts/vitest.scripts.config.ts` whenever you
 need ground truth. Plain `node` can't run it directly: `@esotericsoftware/

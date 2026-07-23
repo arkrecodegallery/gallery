@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { computeBarProgress, dotState } from "./bondProgress";
+import { computeBarProgress, dotState } from "$lib/core/bondProgress";
 
 describe("computeBarProgress", () => {
 	it("returns -1/0 when nothing is playing yet", () => {

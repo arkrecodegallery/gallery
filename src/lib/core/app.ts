@@ -130,6 +130,8 @@ export class App implements SpineCanvasApp {
 
 		store.modelState.syncBondCheckboxState(this.animation);
 		store.modelState.updateBondPlaybackProgress(this.animation);
+		store.modelState.updateHeroAnimationProgress(this.animation);
+		store.modelState.updateSkillPlaybackProgress(this.animation);
 	}
 
 	async reloadModel(canvas: SpineCanvas) {

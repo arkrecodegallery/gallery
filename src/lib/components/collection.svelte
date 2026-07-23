@@ -10,7 +10,7 @@
 			const presentation = entry.bond?.[store.modelState.cycleIndex];
 			if (presentation !== undefined && presentation.kind === "stills") {
 				return store.assetManager.path(
-					presentation.images[store.modelState.bondAnimationIndex]
+					presentation.images[store.modelState.bond.stillsIndex]
 				);
 			}
 		} else if (store.view === "collection") {

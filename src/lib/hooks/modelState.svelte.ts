@@ -9,9 +9,14 @@ import type {
 } from "@esotericsoftware/spine-core";
 import { keybinds } from "$lib/core/keybinds";
 import { addKeydownListener } from "$lib/utils";
-import { Animate } from "$lib/core/animate";
-import { getBondRule } from "$lib/core/bondRules";
-import { BondSequencer, type BondSequenceStep } from "$lib/core/bondSequencer";
+import { BondViewState } from "./bondViewState.svelte";
+import { BondSequenceActions } from "./bondSequenceActions";
+import { BondAutoPlay } from "./bondAutoPlay";
+import { HeroViewState } from "./heroViewState.svelte";
+import {
+	POSSIBLE_IDLE_NAMES,
+	findIdleAnimationName,
+} from "$lib/core/idleAnimation";
 import { computeBarProgress } from "$lib/core/bondProgress";
 
 function fromLocalStorage(item: string): number {
@@ -34,19 +39,18 @@ export class ModelState {
 	animationUpdate: boolean = false;
 
 	cycleIndex: number = $state(0);
-	bondAnimationIndex: number = $state(0);
 	modelUpdate: boolean = false;
 
-	bondStageIndex: number = $state(0);
-	bondStageCount: number = $state(0);
-	bondSequenceBars: BondSequenceStep[] = $state([]);
-	bondManualOverride: boolean = $state(false);
-	bondActiveBarIndex: number = $state(-1);
-	bondBarProgress: number = $state(0);
-	bondAutoPlay: boolean = $state(false);
+	skillActiveTrackIndex = 0;
+	skillBarProgress: number = $state(0);
 
-	private bondSequencer = new BondSequencer();
-	private lastBondSkeletonData?: SkeletonData;
+	public readonly bond = new BondViewState();
+	public readonly heroAnimation = new HeroViewState();
+	private bondActions = new BondSequenceActions(this.bond);
+	private bondAutoPlay = new BondAutoPlay(this.bond, this.bondActions, () => {
+		this.animationUpdate = true;
+		this.skinUpdate = true;
+	});
 
 	constructor() {
 		addKeydownListener((ev) => {
@@ -109,9 +113,13 @@ export class ModelState {
 	}
 
 	handleAnimationChange(key: string) {
+		const heroFamily = store.view === "hero" || store.view === "alt";
+
 		switch (key) {
 			case keybinds.Cutscene:
-				if (store.view === "skill") {
+				if (heroFamily && store.skeletonData) {
+					this.heroAnimation.cycleSelection(store.skeletonData);
+				} else if (store.view === "skill") {
 					this.cutScene = true;
 					this.animationUpdate = true;
 				} else if (store.view === "bond") {
@@ -123,17 +131,18 @@ export class ModelState {
 				}
 				break;
 			case keybinds.Touch:
-				if (store.view === "hero" || store.view === "skill") {
+				if (heroFamily && store.skeletonData) {
+					if (this.heroAnimation.playSelected(store.skeletonData)) {
+						this.animationUpdate = true;
+					}
+				} else if (store.view === "skill") {
 					this.touch = true;
 					this.animationUpdate = true;
 				} else if (store.view === "bond") {
 					const entry = this.getAbsoluteEntry();
 					const presentation = entry.bond![this.cycleIndex];
 					if (presentation.kind === "stills") {
-						this.bondAnimationIndex += 1;
-						if (this.bondAnimationIndex === presentation.images.length) {
-							this.bondAnimationIndex = 0;
-						}
+						this.bondActions.advanceStills(presentation.images.length);
 					} else if (presentation.kind === "animated") {
 						this.advanceBondStage();
 					}
@@ -149,28 +158,16 @@ export class ModelState {
 	}
 
 	public bondAnimationStageMap(): Map<string, number> | undefined {
-		if (store.view !== "bond" || !store.skeletonData) {
-			return undefined;
-		}
-
-		const rule = getBondRule(this.getAbsoluteEntry().id);
-		if (rule.disable) {
-			return undefined;
-		}
-
-		return new Animate(store.skeletonData.animations, rule).stageByName;
+		return this.bond.stageMap(this.getAbsoluteEntry().id);
 	}
 
 	public setAnimationChecked(name: string, checked: boolean, additive = false) {
 		if (store.view === "bond") {
-			// manual selection takes over from the auto-sequencer until the
-			// next stage advance hands control back
-			this.bondSequencer.manualOverride = true;
-			this.bondAutoPlay = false;
-
-			if (checked) {
-				this.anchorBondSequencer(name);
-			}
+			this.bondActions.handleCheckboxSelect(
+				this.getAbsoluteEntry().id,
+				name,
+				checked
+			);
 		}
 
 		if (!additive) {
@@ -196,91 +193,17 @@ export class ModelState {
 	}
 
 	public advanceBondStage() {
-		if (!store.skeletonData) {
-			return;
+		if (this.bondActions.advanceStage(this.getAbsoluteEntry().id)) {
+			this.animationUpdate = true;
+			this.skinUpdate = true;
 		}
-
-		const rule = getBondRule(this.getAbsoluteEntry().id);
-		if (rule.disable) {
-			return;
-		}
-
-		const animate = new Animate(store.skeletonData.animations, rule);
-		if (!this.bondSequencer.advance(animate)) {
-			return;
-		}
-		this.syncBondSequenceMeta(animate);
-
-		this.animationUpdate = true;
-		this.skinUpdate = true;
 	}
 
 	public startBondAutoPlay() {
-		if (!store.skeletonData) {
-			return;
+		if (this.bondActions.startAutoPlay(this.getAbsoluteEntry().id)) {
+			this.animationUpdate = true;
+			this.skinUpdate = true;
 		}
-
-		const rule = getBondRule(this.getAbsoluteEntry().id);
-		if (rule.disable) {
-			return;
-		}
-
-		const animate = new Animate(store.skeletonData.animations, rule);
-		this.bondSequencer.enterStage(animate, 0);
-		this.bondAutoPlay = true;
-		this.syncBondSequenceMeta(animate);
-
-		this.animationUpdate = true;
-		this.skinUpdate = true;
-	}
-
-	private tryAdvanceAutoPlay(entry: TrackEntry): boolean {
-		if (
-			store.view !== "bond" ||
-			!this.bondAutoPlay ||
-			this.bondManualOverride ||
-			entry.next !== null ||
-			!store.skeletonData
-		) {
-			return false;
-		}
-
-		const rule = getBondRule(this.getAbsoluteEntry().id);
-		if (rule.disable) {
-			this.bondAutoPlay = false;
-			return false;
-		}
-
-		const animate = new Animate(store.skeletonData.animations, rule);
-		if (this.bondSequencer.stageIndex >= animate.groups.length - 1) {
-			this.bondAutoPlay = false;
-			return false;
-		}
-
-		this.advanceBondStage();
-		return true;
-	}
-
-	private anchorBondSequencer(name: string) {
-		if (!store.skeletonData) {
-			return;
-		}
-
-		const rule = getBondRule(this.getAbsoluteEntry().id);
-		if (rule.disable) {
-			return;
-		}
-
-		const animate = new Animate(store.skeletonData.animations, rule);
-		this.bondSequencer.takeManualControl(animate, name);
-		this.syncBondSequenceMeta(animate);
-	}
-
-	private syncBondSequenceMeta(animate: Animate) {
-		this.bondStageIndex = this.bondSequencer.stageIndex;
-		this.bondStageCount = animate.groups.length;
-		this.bondSequenceBars = this.bondSequencer.sequence;
-		this.bondManualOverride = this.bondSequencer.manualOverride;
 	}
 
 	private manualBondAnimations(): Animation[] {
@@ -296,13 +219,11 @@ export class ModelState {
 			return;
 		}
 
-		const rule = getBondRule(this.getAbsoluteEntry().id);
-		if (rule.disable || this.bondSequencer.manualOverride) {
-			return;
-		}
-
-		const current = animationState.getCurrent(0)?.animation?.name;
-		if (!current) {
+		const current = this.bond.currentCheckboxAnimation(
+			animationState,
+			this.getAbsoluteEntry().id
+		);
+		if (current === undefined) {
 			return;
 		}
 
@@ -313,13 +234,26 @@ export class ModelState {
 	}
 
 	public updateBondPlaybackProgress(animationState: AnimationState) {
-		if (store.view !== "bond" || this.bondManualOverride) {
+		this.bond.updatePlaybackProgress(animationState);
+	}
+
+	public updateHeroAnimationProgress(animationState: AnimationState) {
+		if (store.view !== "hero" && store.view !== "alt") {
+			return;
+		}
+		this.heroAnimation.updatePlaybackProgress(animationState);
+	}
+
+	public updateSkillPlaybackProgress(animationState: AnimationState) {
+		if (store.view !== "skill") {
 			return;
 		}
 
-		const current = animationState.getCurrent(0);
-		const { activeBarIndex, progress } = computeBarProgress(
-			this.bondSequenceBars,
+		const current = animationState.getCurrent(this.skillActiveTrackIndex);
+		const { progress } = computeBarProgress(
+			current?.animation
+				? [{ animationName: current.animation.name, loop: true }]
+				: [],
 			current?.animation
 				? {
 						animationName: current.animation.name,
@@ -328,39 +262,18 @@ export class ModelState {
 					}
 				: undefined
 		);
-		this.bondActiveBarIndex = activeBarIndex;
-		this.bondBarProgress = progress;
+		this.skillBarProgress = progress;
 	}
 
 	public handleBondAnimationComplete(
 		entry: TrackEntry,
 		animationState: AnimationState
 	) {
-		if (this.tryAdvanceAutoPlay(entry)) {
-			return;
-		}
-		this.handleBondLoopComplete(entry, animationState);
-	}
-
-	private handleBondLoopComplete(
-		entry: TrackEntry,
-		animationState: AnimationState
-	) {
-		if (store.view !== "bond" || this.bondManualOverride) {
-			return;
-		}
-
-		const chain = this.bondSequencer.loopChain;
-		if (chain.length === 0 || entry.next !== null) {
-			return;
-		}
-		if (entry.animation?.name !== chain[chain.length - 1]) {
-			return;
-		}
-
-		for (const name of chain) {
-			animationState.addAnimation(0, name, false);
-		}
+		this.bondAutoPlay.handleAnimationComplete(
+			entry,
+			animationState,
+			this.getAbsoluteEntry().id
+		);
 	}
 
 	public getAnimation(
@@ -369,70 +282,43 @@ export class ModelState {
 		skeleton: Skeleton
 	): Animation[] {
 		if (store.view === "bond") {
-			const rule = getBondRule(this.getAbsoluteEntry().id);
-			const isNewSkeleton = this.lastBondSkeletonData !== skeletonData;
-			if (isNewSkeleton) {
-				this.lastBondSkeletonData = skeletonData;
-				this.bondSequencer.reset();
-				this.bondAutoPlay = false;
-			}
-
-			if (rule.disable) {
-				return this.manualBondAnimations();
-			}
-
-			animationState.clearTracks();
-			skeleton.setToSetupPose();
-
-			if (isNewSkeleton) {
-				const animate = new Animate(skeletonData.animations, rule);
-				this.bondSequencer.enterStage(animate, 0);
-				this.syncBondSequenceMeta(animate);
-			}
-
-			if (this.bondSequencer.manualOverride) {
-				return this.manualBondAnimations();
-			}
-
-			return this.bondSequencer.sequence.map((step) => ({
-				trackIndex: 0,
-				animationName: step.animationName,
-				loop: step.loop,
-			}));
+			return this.bondActions.getAnimation(
+				skeletonData,
+				animationState,
+				skeleton,
+				this.getAbsoluteEntry().id,
+				() => this.manualBondAnimations()
+			);
 		}
 
+		if (store.view === "hero" || store.view === "alt") {
+			return this.heroAnimation.getAnimation(skeletonData, animationState);
+		}
+
+		return this.getSkillAnimation(skeletonData, animationState);
+	}
+
+	private getSkillAnimation(
+		skeletonData: SkeletonData,
+		animationState: AnimationState
+	): Animation[] {
 		const animations: Animation[] = [];
-		const possibleIdle = [
-			"00_Idle",
-			"00_idle",
-			"00_Idle_ani",
-			"00_idle_ani",
-			"00_Idle_ani0",
-			"00_idle_ani0",
-			"00_Idle_ani1",
-			"00_idle_ani1",
-			"01_Idle_ani",
-			"01_Idle_ani1",
-			"01_00_Idle_ani0",
-		];
-		this.tryAddAnimations(animations, possibleIdle, skeletonData, {
-			onlyOne: true,
-		});
-
-		let bgAnimations: Animation[] = [];
-		if (store.view === "skill") {
-			const possible = [
-				"90_BG",
-				"90_BG2",
-				"90_BG3",
-				"90_BG_Loop",
-				"90_Sparkle",
-				"90_BG_02",
-			];
-			const beforeBg = animations.length;
-			this.tryAddAnimations(animations, possible, skeletonData);
-			bgAnimations = animations.slice(beforeBg);
+		const idleName = findIdleAnimationName(skeletonData.animations);
+		if (idleName) {
+			animations.push({ trackIndex: 0, animationName: idleName, loop: true });
 		}
+
+		const possibleBg = [
+			"90_BG",
+			"90_BG2",
+			"90_BG3",
+			"90_BG_Loop",
+			"90_Sparkle",
+			"90_BG_02",
+		];
+		const beforeBg = animations.length;
+		this.tryAddAnimations(animations, possibleBg, skeletonData);
+		const bgAnimations = animations.slice(beforeBg);
 
 		if (this.touch || this.cutScene) {
 			const possible = this.touch
@@ -455,6 +341,7 @@ export class ModelState {
 				loop: false,
 				startingTrack,
 			});
+			this.skillActiveTrackIndex = startingTrack;
 
 			const listener: AnimationStateListener = {
 				complete: (entry: TrackEntry) => {
@@ -471,7 +358,7 @@ export class ModelState {
 					for (const track of animationState.tracks) {
 						if (
 							track &&
-							possibleIdle.includes(track.animation?.name ?? "")
+							POSSIBLE_IDLE_NAMES.includes(track.animation?.name ?? "")
 						) {
 							track.trackTime = 0;
 						}
@@ -483,6 +370,7 @@ export class ModelState {
 						}
 					}
 
+					this.skillActiveTrackIndex = 0;
 					animationState.removeListener(listener);
 				},
 			};
@@ -505,8 +393,7 @@ export class ModelState {
 		for (const anim of possible) {
 			if (skeletonData.animations.some((a) => a.name === anim)) {
 				animations.push({
-					trackIndex:
-						animations.length + (options?.startingTrack ?? 0),
+					trackIndex: animations.length + (options?.startingTrack ?? 0),
 					animationName: anim,
 					loop: options?.loop ?? true,
 				});
@@ -599,8 +486,6 @@ export class ModelState {
 					if (prevIndex === this.cycleIndex) {
 						return;
 					}
-
-					console.log(this.cycleIndex);
 				}
 
 				if (!!this.getBundle(entry, store.view)) {

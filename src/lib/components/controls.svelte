@@ -7,7 +7,7 @@
 	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
 	import { Button } from "./ui/button";
 	import { ClapperboardIcon, ShirtIcon } from "@lucide/svelte";
-	import BondProgressMeter from "$lib/components/bond-progress-meter.svelte";
+	import ProgressMeter from "$lib/components/progress-meter.svelte";
 	import { cn } from "$lib/utils";
 
 	const skins = $derived(store.skeletonData?.skins ?? []);
@@ -139,7 +139,7 @@
 			<Kbd.Group>
 				<Key
 					key={keybinds.Cutscene}
-					disabled={store.view !== "skill" && store.view !== "bond"}
+					disabled={store.view === "collection"}
 				/>
 				<Key
 					key={keybinds.Touch}
@@ -147,7 +147,7 @@
 				/>
 			</Kbd.Group>
 		</div>
-		<BondProgressMeter />
+		<ProgressMeter />
 	</div>
 {/snippet}
 
@@ -158,5 +158,5 @@
 		: ''}"
 >
 	{@render children()}
-	<BondProgressMeter className="!mt-1" />
+	<ProgressMeter className="!mt-1" />
 </div>

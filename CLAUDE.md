@@ -47,6 +47,8 @@ TEST_DATA_PATH=<path-to-real-data-folder> cargo test runner   # integration test
 
 No lint/format command is configured beyond `svelte-check`; there's no ESLint/Prettier/rustfmt CI step defined in this repo.
 
+Don't reach for Playwright (or any headless-browser/screenshot automation) to verify frontend changes — the app's first load streams the full asset set and takes minutes, so screenshot-based checks are too slow to be a useful feedback loop and tend to time out or capture a still-loading page. Verify with `npm run check` + `npx vitest run` instead; if a change genuinely needs visual confirmation, ask the user to check it in their own running dev server rather than automating a browser.
+
 ## Backend architecture (`src-tauri/src`)
 
 Entry point is the single Tauri command `generate_map` in `commands.rs`. It builds a few lookup structures once, then threads them through a `GalleryContext` reference (`entry/mod.rs`) rather than passing each table individually:

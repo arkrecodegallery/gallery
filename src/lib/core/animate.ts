@@ -1,5 +1,6 @@
 import type { Animation } from "@esotericsoftware/spine-core";
 import type { BondRule } from "./bondRules";
+import { getAnimationPrefix } from "./animationName";
 
 type AnimationMode = "idle" | "loop" | "finish" | "end" | "bg" | "skip";
 
@@ -183,7 +184,7 @@ export class Animate {
 		const fullName = name.replaceAll(" ", "_").toLocaleLowerCase();
 		const parts = fullName.split("_");
 
-		const prefix = Number(parts[0]);
+		const prefix = getAnimationPrefix(name);
 		const stage = Number(parts[0][0]);
 		const part = Number(parts[0][1]);
 

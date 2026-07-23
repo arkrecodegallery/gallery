@@ -53,9 +53,8 @@
 				id: "actions",
 				cell: ({ row }) => {
 					const id = row.original.id;
-					const entry = store.map[id];
-					const src = store.assetManager.path(entry.icons.hero);
-					const alt = `/icons/hero_icons/__No_Icon__.png`;
+					const src = `/icons/heroes/${id}.png`;
+					const alt = `/icons/__No_Icon__.png`;
 					return renderSnippet(viewButton, { id, src, alt });
 				},
 			},
@@ -245,12 +244,17 @@
 	>
 		<Icon icon={"mdi:eye"} />
 		<img
-			src={src || alt}
+			src={src}
 			alt={id}
 			width={48}
 			height={48}
 			class="rounded"
 			loading="lazy"
+			onerror={(ev) => {
+				const img = ev.currentTarget as HTMLImageElement;
+				img.onerror = null;
+				img.src = alt;
+			}}
 		/>
 	</Button>
 {/snippet}

@@ -27,7 +27,7 @@ vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 
 # Big Data
-/static/icons
+/static/icons/heroes
 /static/csv
 /static/gallery-data
 

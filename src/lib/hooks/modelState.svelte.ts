@@ -148,6 +148,19 @@ export class ModelState {
 		return update;
 	}
 
+	public bondAnimationStageMap(): Map<string, number> | undefined {
+		if (store.view !== "bond" || !store.skeletonData) {
+			return undefined;
+		}
+
+		const rule = getBondRule(this.getAbsoluteEntry().id);
+		if (rule.disable) {
+			return undefined;
+		}
+
+		return new Animate(store.skeletonData.animations, rule).stageByName;
+	}
+
 	public setAnimationChecked(name: string, checked: boolean, additive = false) {
 		if (store.view === "bond") {
 			// manual selection takes over from the auto-sequencer until the
@@ -406,6 +419,7 @@ export class ModelState {
 			onlyOne: true,
 		});
 
+		let bgAnimations: Animation[] = [];
 		if (store.view === "skill") {
 			const possible = [
 				"90_BG",
@@ -415,7 +429,9 @@ export class ModelState {
 				"90_Sparkle",
 				"90_BG_02",
 			];
+			const beforeBg = animations.length;
 			this.tryAddAnimations(animations, possible, skeletonData);
+			bgAnimations = animations.slice(beforeBg);
 		}
 
 		if (this.touch || this.cutScene) {
@@ -423,8 +439,15 @@ export class ModelState {
 				? ["04_Touch", "01_Touch"]
 				: ["02_CutIn", "02_Cutin", "02_Cutln", "03_CutIn", "03_Cutin"];
 			const touch = this.touch;
+			const cutScene = this.cutScene;
 			this.touch = false;
 			this.cutScene = false;
+
+			if (cutScene) {
+				for (const { trackIndex } of bgAnimations) {
+					animationState.setEmptyAnimation(trackIndex, 0);
+				}
+			}
 
 			const startingTrack = animations.length;
 			animations.splice(0, animations.length);
@@ -451,6 +474,12 @@ export class ModelState {
 							possibleIdle.includes(track.animation?.name ?? "")
 						) {
 							track.trackTime = 0;
+						}
+					}
+
+					if (cutScene) {
+						for (const { trackIndex, animationName, loop } of bgAnimations) {
+							animationState.setAnimation(trackIndex, animationName, loop);
 						}
 					}
 

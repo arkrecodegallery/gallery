@@ -8,9 +8,27 @@
 	import { Button } from "./ui/button";
 	import { ClapperboardIcon, ShirtIcon } from "@lucide/svelte";
 	import BondProgressMeter from "$lib/components/bond-progress-meter.svelte";
+	import { cn } from "$lib/utils";
 
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
+	const stageMap = $derived(store.modelState.bondAnimationStageMap());
+
+	function stageBarClass(index: number): string | undefined {
+		const stage = stageMap?.get(animations[index].name);
+		if (stage === undefined) return undefined;
+
+		const prevStage = stageMap?.get(animations[index - 1]?.name);
+		const nextStage = stageMap?.get(animations[index + 1]?.name);
+		const isFirst = stage !== prevStage;
+		const isLast = stage !== nextStage;
+
+		return cn(
+			"pointer-events-none absolute left-1 w-5.5 bg-foreground/20",
+			isFirst ? "top-1 rounded-t-full" : "top-0 rounded-t-none",
+			isLast ? "bottom-1 rounded-b-full" : "bottom-0 rounded-b-none",
+		);
+	}
 
 	let { children } = $props();
 
@@ -65,7 +83,8 @@
 				{@render animationTab()}
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
-				{#each animations as anim}
+				{#each animations as anim, i}
+					{@const bar = stageBarClass(i)}
 					<DropdownMenu.CheckboxItem
 						checked={anim.name in store.modelState.animations}
 						onCheckedChange={(checked) =>
@@ -76,6 +95,9 @@
 							)}
 						closeOnSelect={false}
 					>
+						{#if bar}
+							<span class={bar}></span>
+						{/if}
 						{anim.name}
 					</DropdownMenu.CheckboxItem>
 				{/each}

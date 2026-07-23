@@ -21,6 +21,7 @@ interface AnimationEntry {
 export class Animate {
 	groups!: AnimationEntry[][];
 	background!: Animation[];
+	stageByName!: Map<string, number>;
 
 	readonly specials = ["hand", "lick", "slap", "kiss", "touch", "emo"];
 	readonly transitions = ["in", "out", "to", "off"];
@@ -161,6 +162,21 @@ export class Animate {
 			}
 		}
 		flush();
+
+		this.stageByName = new Map();
+		this.groups.forEach((group, stageIndex) => {
+			group.forEach((entry, entryIndex) => {
+				// bypass footage (entryIndex > 0) leads into the next
+				// stop, so display it grouped with that stop, not this one
+				const displayStage =
+					entryIndex > 0 && stageIndex + 1 < this.groups.length
+						? stageIndex + 1
+						: stageIndex;
+				for (const animation of entry.animations) {
+					this.stageByName.set(animation.name, displayStage);
+				}
+			});
+		});
 	}
 
 	parseName(name: string): AnimationName {

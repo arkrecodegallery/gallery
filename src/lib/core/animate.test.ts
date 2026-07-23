@@ -18,6 +18,51 @@ function bgNames(animate: Animate): string[] {
 	return animate.background.map((a) => a.name);
 }
 
+describe("Animate.stageByName", () => {
+	it("groups bypass footage with the stop it leads into, not the one it leaves", () => {
+		const animate = new Animate(anims(["00_idle", "01_idle_in", "10_loop"]));
+		expect(Object.fromEntries(animate.stageByName)).toEqual({
+			"00_idle": 0,
+			"01_idle_in": 1,
+			"10_loop": 1,
+		});
+	});
+
+	it("chains multiple bypass entries into the final stop's display group", () => {
+		const animate = new Animate(
+			anims([
+				"00_idle",
+				"20_loop",
+				"21_loop_ani",
+				"22_loop_ani",
+				"30_finish_ani",
+				"30_finish_out_ani",
+				"40_end_ani",
+			])
+		);
+		expect(Object.fromEntries(animate.stageByName)).toEqual({
+			"00_idle": 0,
+			"20_loop": 1,
+			"21_loop_ani": 2,
+			"22_loop_ani": 3,
+			"30_finish_ani": 4,
+			"30_finish_out_ani": 4,
+			"40_end_ani": 4,
+		});
+	});
+
+	it("keeps trailing bypass footage on the last group's own stage (no next stop to lead into)", () => {
+		const animate = new Animate(
+			anims(["00_idle", "20_loop", "35_something_weird"])
+		);
+		expect(Object.fromEntries(animate.stageByName)).toEqual({
+			"00_idle": 0,
+			"20_loop": 1,
+			"35_something_weird": 1,
+		});
+	});
+});
+
 describe("Animate.groupAnimations", () => {
 	it("stops on the first 00-prefixed idle and treats it as the sole starting group", () => {
 		const animate = new Animate(anims(["00_idle"]));

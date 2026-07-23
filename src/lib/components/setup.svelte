@@ -1,27 +1,23 @@
 <script lang="ts">
 	import * as Dialog from "$lib/components/ui/dialog";
-	import {
-		createGalleryDataDir,
-		isGalleryDataDirReady,
-		isSetupComplete,
-		processGalleryDataDir,
-		revealGalleryDataDir,
-	} from "$lib/core/directory";
+	import { platform } from "$platform";
 	import { onMount } from "svelte";
 	import { Button, buttonVariants } from "./ui/button";
 	import { toast } from "svelte-sonner";
 	import { setupState } from "$lib/hooks/setup.svelte";
 
-	onMount(() => {
-		createGalleryDataDir();
+	const setup = platform.setup!;
 
-		isSetupComplete().then(() => {
-			setupState.setup = true;
-		})
+	onMount(() => {
+		setup.createGalleryDataDir();
+
+		setup.isSetupComplete().then((ready) => {
+			if (ready) setupState.setup = true;
+		});
 	});
 
 	function processData() {
-		toast.promise(processGalleryDataDir(), {
+		toast.promise(setup.processGalleryDataDir(), {
 			loading: "Processing gallery data. This may take a while...",
 			success: () => {
 				setupState.setup = true;
@@ -61,10 +57,10 @@
 			missing files.
 		</p>
 		<Dialog.Footer>
-			<Button onclick={revealGalleryDataDir}
+			<Button onclick={setup.revealGalleryDataDir}
 				>Reveal Gallery Data Directory</Button
 			>
-			{#await isGalleryDataDirReady() then ready}
+			{#await setup.isGalleryDataDirReady() then ready}
 				{#if ready}
 					<Button onclick={processData}>Process Files</Button>
 				{/if}

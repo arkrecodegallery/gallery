@@ -13,6 +13,7 @@ import {
 } from "@esotericsoftware/spine-core";
 import { Animate } from "../src/lib/core/animate";
 import { getBondRule } from "../src/lib/core/bondRules";
+import { loadDotEnv } from "./loadDotEnv";
 
 /**
  * Dormant diagnostic script, not part of the regular test suite (lives
@@ -35,21 +36,6 @@ import { getBondRule } from "../src/lib/core/bondRules";
  *
  * TEST_GALLERY_DIR is read from .env at repo root (see .env.example).
  */
-
-function loadDotEnv(repoRoot: string): Record<string, string> {
-	const envPath = path.join(repoRoot, ".env");
-	const env: Record<string, string> = {};
-	if (!fs.existsSync(envPath)) {
-		return env;
-	}
-
-	for (const line of fs.readFileSync(envPath, "utf-8").split("\n")) {
-		const match = line.match(/^\s*([\w.-]+)\s*=\s*(.*?)\s*$/);
-		if (!match) continue;
-		env[match[1]] = match[2].replace(/^["']|["']$/g, "");
-	}
-	return env;
-}
 
 function findSkelFiles(containersDir: string, query: string): string[] {
 	const entries = fs.readdirSync(containersDir, {

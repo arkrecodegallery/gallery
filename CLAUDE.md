@@ -11,19 +11,23 @@ The app has two halves that only talk to each other through one Tauri command an
 - **Rust backend** (`src-tauri/src`): a one-shot data pipeline that scans the user's data folder and emits `gallery-data/map.json`.
 - **Svelte 5 frontend** (`src`): reads `map.json`, drives an Esoteric Software Spine WebGL canvas, and renders the browsing UI (data table of heroes, a Spine viewer, keyboard-driven navigation).
 
-There is no persistent backend process and no live backend↔frontend messaging beyond that single `invoke("generate_map", ...)` call — everything after that is the frontend reading static JSON plus streaming binary assets from disk via Tauri's asset protocol.
+There is no persistent backend process and no live backend↔frontend messaging beyond that single `invoke("generate_map", ...)` call — everything after that is the frontend reading static JSON plus streaming binary assets from disk (see "Dual build targets" below — this asset-streaming path differs between the Tauri desktop build and the static hosted build).
 
 ## Commands
 
 Frontend (run from repo root):
 
 ```
-npm run dev            # vite dev server (also what Tauri's beforeDevCommand runs)
-npm run build           # vite build (svelte-kit adapter-static)
-npm run check           # svelte-kit sync + svelte-check (type checking)
+npm run dev            # vite dev server, Tauri target (also what Tauri's beforeDevCommand runs)
+npm run build           # vite build, Tauri target (svelte-kit adapter-static)
+npm run dev:static      # vite dev server, static target ($platform → platform/static.ts)
+npm run build:static    # vite build, static target — run scripts/prepare-static-data.test.ts first
+npm run check           # svelte-kit sync + svelte-check (type checking); run once per BUILD_TARGET to check both
 npm run test             # vitest run (single run, not watch)
 npx vitest run src/lib/core/animate.test.ts   # run a single test file
 npx vitest run -t "test name substring"        # run tests matching a name
+npx vitest run --config scripts/vitest.scripts.config.ts scripts/prepare-static-data.test.ts
+                        # regenerates static/gallery-data/ from TEST_GALLERY_DIR; run before build:static
 ```
 
 Tauri app (from repo root — requires Rust toolchain):
@@ -70,7 +74,7 @@ State is centralized in two Svelte 5 rune-based singletons under `src/lib/hooks`
 
 `core/app.ts`'s `App` class implements Spine WebGL's `SpineCanvasApp` and is the render loop: `initialize` → `loadModel`/`configureScene` once, then `update`/`render` every frame. It polls `store.modelState.has*Update()` flags each frame to decide whether to reload the skin, animation track, or whole model — those flags are set by `ModelState` in response to keybinds or view changes, not pushed directly.
 
-`core/cache.ts`'s `AssetManager` owns the actual Spine asset loading (binary `.skel` + `.atlas`) through Tauri's custom asset protocol (`ASSET_PROTOCOL` in `constants.ts`), and no-ops if the requested skel/atlas pair is already loaded — this dedup matters for bond-view cycling, which reuses `AssetManager` across bond entries.
+`core/cache.ts`'s `AssetManager` owns the actual Spine asset loading (binary `.skel` + `.atlas`), and no-ops if the requested skel/atlas pair is already loaded — this dedup matters for bond-view cycling, which reuses `AssetManager` across bond entries. It's constructed with a pre-resolved container base URL (`platform.getContainerBaseUrl()`, see "Dual build targets" below) rather than resolving paths itself, and stays fully synchronous internally — this matters because `core/app.ts`'s `loadAssets`/`reloadModel` lifecycle (driven by spine-webgl's `SpineCanvasApp` contract) calls it without awaiting, so any async path resolution has to happen once up front, not per asset load.
 
 ### Bond animation sequencing
 
@@ -81,6 +85,17 @@ This is the most intricate piece of frontend logic and spans three files that on
 - `core/bondRules.ts` (`getBondRule`) — per-hero-ID overrides (`disable`, `skip`, `rename`) for heroes whose bond skeletons don't follow the naming convention cleanly enough for `Animate` to parse correctly. **This is the frontend equivalent of `rules.rs`** — when a specific hero's bond animation cycles wrong, this is usually the first place to add an exception, not `animate.ts` itself.
 
 `ModelState.getAnimation` is where these three connect back into the render loop: for bond view it lazily builds an `Animate` from the current skeleton + bond rule, seeds/advances the `BondSequencer`, and returns either the sequencer's current sequence or (if `rule.disable` or manual override is active) a flat manual animation list built from checkbox state (`this.animations`).
+
+### Dual build targets: Tauri desktop vs static hosted
+
+The frontend builds two ways from one codebase, selected at build time via the `BUILD_TARGET` env var (`tauri`, the default, or `static`) and a `$platform` alias configured in `svelte.config.js`'s `kit.alias`, resolving to either `src/lib/platform/tauri.ts` or `src/lib/platform/static.ts` (shared shape in `src/lib/platform/types.ts`). All call sites that need to know which target they're in go through `platform` from `$platform` — never import `@tauri-apps/*` outside `platform/tauri.ts`, or it'll end up in the static bundle.
+
+- **Tauri target** (`platform/tauri.ts`) — today's bring-your-own-files behavior: reads live from the user's local `gallery-data` folder via Tauri's `asset:` protocol, includes a `setup` object (`Platform.setup`) driving the first-run "point at your folder, click Process Files" flow (`setup.svelte`), which invokes `generate_map` same as always.
+- **Static target** (`platform/static.ts`) — no setup flow (`platform.setup` is `undefined`, so `setup.svelte` never renders — see `+page.svelte`), fetches a pre-baked `gallery-data/map.json` + `gallery-data/containers/` shipped alongside the site under `static/`.
+
+The static target's data isn't the full local `containers/` dump — it's tree-shaken by **`scripts/prepare-static-data.test.ts`** (run manually before `build:static`, following the same "dormant script under `scripts/`" convention as `extract-skel-animations.test.ts` — see `scripts/vitest.scripts.config.ts`), because `containers/` is raw AssetStudio output and is typically an order of magnitude bigger than what any `Entry` actually references (measured on real data: 5.8GB/11,579 files down to ~3GB/1,726 files).
+
+**When adding a new container-relative-path field to `Entry`/`BondPresentation`/`Bundle` in `types.ts`, you must also add it to `collectEntryPaths` in `scripts/prepare-static-data.test.ts`** — the Tauri build reads live from disk so it won't notice a missed field, but the static build will silently ship a hero with a missing texture/skel/image. The script also parses referenced `.atlas` files for their texture page filenames (not listed in `map.json` at all — Spine atlas format, first line after each blank line is a page image name) since those need tree-shaking too. `static/gallery-data` is gitignored (see "Big Data" in `.gitignore`, alongside `static/icons`/`static/csv`) — it's regenerated locally before each deploy, never committed.
 
 ## Clean code policy
 

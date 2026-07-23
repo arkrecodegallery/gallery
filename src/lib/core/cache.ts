@@ -1,7 +1,6 @@
 import type { SpineCanvas } from "@esotericsoftware/spine-webgl";
 import { store } from "$lib/hooks/state.svelte";
 import type { Entry } from "./types";
-import { ASSET_PROTOCOL, DIR_CONTAINERS } from "./constants";
 
 export class AssetManager {
 	base: string = "";
@@ -13,8 +12,8 @@ export class AssetManager {
 	loadedBinary: boolean = false;
 	loadedAtlas: boolean = false;
 
-	constructor(basePath: string) {
-		this.base = basePath;
+	constructor(containerBaseUrl: string) {
+		this.base = containerBaseUrl;
 	}
 
 	public loadModel(canvas: SpineCanvas, entry: Entry) {
@@ -89,6 +88,6 @@ export class AssetManager {
 	}
 
 	path(name: string): string {
-		return `${ASSET_PROTOCOL}/${this.base}/${DIR_CONTAINERS}/${name}`;
+		return `${this.base}/${name}`;
 	}
 }

@@ -29,6 +29,7 @@ vite.config.ts.timestamp-*
 # Big Data
 /static/icons
 /static/csv
+/static/gallery-data
 
 # Development
 # GUIDE.md

@@ -19,11 +19,6 @@
 	import { keybinds } from "$lib/core/keybinds";
 	import Toggle from "./ui/toggle/toggle.svelte";
 	import type { Entry } from "$lib/core/types";
-	import {
-		ASSET_PROTOCOL,
-		DIR_CONTAINERS,
-		PATH_GALLERY_DATA,
-	} from "$lib/core/constants";
 	import { goto } from "$app/navigation";
 
 	const _showDetails = localStorage.getItem("showDetails");
@@ -59,10 +54,7 @@
 				cell: ({ row }) => {
 					const id = row.original.id;
 					const entry = store.map[id];
-					const src = PATH_GALLERY_DATA(
-						DIR_CONTAINERS,
-						entry.icons.hero
-					);
+					const src = store.assetManager.path(entry.icons.hero);
 					const alt = `/icons/hero_icons/__No_Icon__.png`;
 					return renderSnippet(viewButton, { id, src, alt });
 				},
@@ -243,7 +235,7 @@
 	alt,
 }: {
 	id: string;
-	src: Promise<string>;
+	src: string;
 	alt: string;
 })}
 	<Button
@@ -252,16 +244,14 @@
 		class="cursor-pointer place-self-center flex gap-2 hover:!bg-background w-[4.5rem] !pr-0"
 	>
 		<Icon icon={"mdi:eye"} />
-		{#await src then src}
-			<img
-				src={src ? `${ASSET_PROTOCOL}/${src}` : alt}
-				alt={id}
-				width={48}
-				height={48}
-				class="rounded"
-				loading="lazy"
-			/>
-		{/await}
+		<img
+			src={src || alt}
+			alt={id}
+			width={48}
+			height={48}
+			class="rounded"
+			loading="lazy"
+		/>
 	</Button>
 {/snippet}
 

@@ -8,11 +8,17 @@
 	import { Button } from "./ui/button";
 	import { ClapperboardIcon, ShirtIcon } from "@lucide/svelte";
 	import ProgressMeter from "$lib/components/progress-meter.svelte";
-	import { cn } from "$lib/utils";
+	import { cn, fileName } from "$lib/utils";
 
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
 	const stageMap = $derived(store.modelState.animationStageMap());
+	const skinDisabled = $derived(store.view !== "hero" && store.view !== "alt");
+	const animationDisabled = $derived(store.view === "collection");
+	const stillsPresentation = $derived.by(() => {
+		const presentation = store.modelState.getBondPresentation();
+		return presentation?.kind === "stills" ? presentation : undefined;
+	});
 
 	function stageBarClass(index: number): string | undefined {
 		const stage = stageMap?.get(animations[index].name);
@@ -56,7 +62,10 @@
 >
 	<div>
 		<DropdownMenu.Root>
-			<DropdownMenu.Trigger class="w-full cursor-pointer rounded-l-lg">
+			<DropdownMenu.Trigger
+				disabled={skinDisabled}
+				class="w-full cursor-pointer rounded-l-lg disabled:cursor-default"
+			>
 				{@render skinTab()}
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
@@ -79,35 +88,51 @@
 	{@render children()}
 	<div>
 		<DropdownMenu.Root>
-			<DropdownMenu.Trigger class="w-full cursor-pointer rounded-l-lg">
+			<DropdownMenu.Trigger
+				disabled={animationDisabled}
+				class="w-full cursor-pointer rounded-l-lg disabled:cursor-default"
+			>
 				{@render animationTab()}
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
-				{#each animations as anim, i}
-					{@const bar = stageBarClass(i)}
-					<DropdownMenu.CheckboxItem
-						checked={anim.name in store.modelState.animations}
-						onCheckedChange={(checked) =>
-							store.modelState.setAnimationChecked(
-								anim.name,
-								checked,
-								shiftHeld,
-							)}
-						closeOnSelect={false}
-					>
-						{#if bar}
-							<span class={bar}></span>
-						{/if}
-						{anim.name}
-					</DropdownMenu.CheckboxItem>
-				{/each}
+				{#if stillsPresentation}
+					{#each stillsPresentation.images as image, i}
+						<DropdownMenu.CheckboxItem
+							checked={i === store.modelState.bond.stillsIndex}
+							onCheckedChange={(checked) =>
+								checked && store.modelState.setStillsChecked(i)}
+							closeOnSelect={false}
+						>
+							{fileName(image)}
+						</DropdownMenu.CheckboxItem>
+					{/each}
+				{:else}
+					{#each animations as anim, i}
+						{@const bar = stageBarClass(i)}
+						<DropdownMenu.CheckboxItem
+							checked={anim.name in store.modelState.animations}
+							onCheckedChange={(checked) =>
+								store.modelState.setAnimationChecked(
+									anim.name,
+									checked,
+									shiftHeld,
+								)}
+							closeOnSelect={false}
+						>
+							{#if bar}
+								<span class={bar}></span>
+							{/if}
+							{anim.name}
+						</DropdownMenu.CheckboxItem>
+					{/each}
+				{/if}
 			</DropdownMenu.Content>
 		</DropdownMenu.Root>
 	</div>
 </div>
 
 {#snippet skinTab()}
-	{@const disabled = store.view !== "hero" && store.view !== "alt"}
+	{@const disabled = skinDisabled}
 	<div
 		class="w-full border border-r-black/0 {disabled
 			? 'border-foreground/10'
@@ -126,7 +151,7 @@
 {/snippet}
 
 {#snippet animationTab()}
-	{@const disabled = store.view === "collection"}
+	{@const disabled = animationDisabled}
 	<div
 		class="w-full border border-r-black/0 {disabled
 			? 'border-foreground/10'
@@ -139,7 +164,7 @@
 			<Kbd.Group>
 				<Key
 					key={keybinds.Cutscene}
-					disabled={store.view === "collection"}
+					disabled={store.view === "collection" || !!stillsPresentation}
 				/>
 				<Key
 					key={keybinds.Touch}

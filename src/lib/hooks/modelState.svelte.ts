@@ -1,5 +1,11 @@
 import { store } from "./state.svelte";
-import type { Animation, Bundle, Entry, ModelView } from "../core/types";
+import type {
+	Animation,
+	BondPresentation,
+	Bundle,
+	Entry,
+	ModelView,
+} from "../core/types";
 import type {
 	AnimationState,
 	AnimationStateListener,
@@ -77,6 +83,8 @@ export class ModelState {
 	}
 
 	handleSkinChange(key: string) {
+		if (store.view !== "hero" && store.view !== "alt") return;
+
 		const cur = this.skinLevel;
 
 		switch (key) {
@@ -175,6 +183,15 @@ export class ModelState {
 
 	public animationStageMap(): Map<string, number> | undefined {
 		return this.bond.stageMap(this.getAbsoluteEntry().id);
+	}
+
+	public getBondPresentation(): BondPresentation | undefined {
+		if (store.view !== "bond") return undefined;
+		return this.getAbsoluteEntry().bond?.[this.cycleIndex];
+	}
+
+	public setStillsChecked(index: number) {
+		this.bondActions.setStillsIndex(index);
 	}
 
 	public setAnimationChecked(name: string, checked: boolean, additive = false) {
@@ -581,6 +598,11 @@ export class ModelState {
 			this.cycleIndex = 0;
 		} else if (viewSwitch) {
 			if (store.view === "bond") {
+				if ((entry.bond ?? []).length === 0) {
+					store.view = prevView;
+					return;
+				}
+
 				if (prevView === "bond") {
 					const prevIndex = this.cycleIndex;
 					this.cycleIndex += 1;
@@ -590,6 +612,8 @@ export class ModelState {
 					if (prevIndex === this.cycleIndex) {
 						return;
 					}
+				} else {
+					this.cycleIndex = 0;
 				}
 
 				if (!!this.getBundle(entry, store.view)) {
@@ -606,6 +630,8 @@ export class ModelState {
 					if (this.cycleIndex === entry.collection!.length) {
 						this.cycleIndex = 0;
 					}
+				} else {
+					this.cycleIndex = 0;
 				}
 
 				store.loading = true;

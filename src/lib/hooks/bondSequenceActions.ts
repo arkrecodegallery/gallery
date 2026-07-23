@@ -54,6 +54,10 @@ export class BondSequenceActions {
 		}
 	}
 
+	setStillsIndex(index: number) {
+		this.state.stillsIndex = index;
+	}
+
 	takeManualControl(heroId: string, name: string) {
 		if (!store.skeletonData) {
 			return;

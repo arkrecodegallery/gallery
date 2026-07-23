@@ -41,15 +41,34 @@ export class BondSequencer {
 		return true;
 	}
 
-	takeManualControl(animate: Animate, name: string) {
+	takeManualControl(animate: Animate, name: string, orderedNames: string[] = []) {
 		this.manualOverride = true;
 
-		const index = animate.groups.findIndex((group) =>
-			group.some((entry) => entry.animations.some((a) => a.name === name))
-		);
-		if (index !== -1) {
-			this.stageIndex = index;
+		const stage = this.resolveStage(animate, name, orderedNames);
+		if (stage !== undefined) {
+			this.stageIndex = stage;
 		}
+	}
+
+	/** Exact stage if the pick has one, else the nearest stage before it. */
+	private resolveStage(
+		animate: Animate,
+		name: string,
+		orderedNames: string[]
+	): number | undefined {
+		const direct = animate.stageByName.get(name);
+		if (direct !== undefined) {
+			return direct;
+		}
+
+		const index = orderedNames.indexOf(name);
+		for (let i = index - 1; i >= 0; i--) {
+			const stage = animate.stageByName.get(orderedNames[i]);
+			if (stage !== undefined) {
+				return stage;
+			}
+		}
+		return undefined;
 	}
 
 	private applyStage(

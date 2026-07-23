@@ -129,6 +129,8 @@ export class App implements SpineCanvasApp {
 		this.skeleton.updateWorldTransform();
 
 		store.modelState.syncBondCheckboxState(this.animation);
+		store.modelState.syncHeroCheckboxState();
+		store.modelState.syncSkillCheckboxState(this.animation);
 		store.modelState.updateBondPlaybackProgress(this.animation);
 		store.modelState.updateHeroAnimationProgress(this.animation);
 		store.modelState.updateSkillPlaybackProgress(this.animation);

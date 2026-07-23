@@ -71,10 +71,7 @@ function computeBondMeterData(modelState: ModelState): MeterData {
 	const rule = getBondRule(entry.id);
 
 	const stillsActive = presentation?.kind === "stills";
-	const animatedActive =
-		presentation?.kind === "animated" &&
-		!rule.disable &&
-		!modelState.bond.manualOverride;
+	const animatedActive = presentation?.kind === "animated" && !rule.disable;
 
 	const stageCount =
 		stillsActive && presentation?.kind === "stills"

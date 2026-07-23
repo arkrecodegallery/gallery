@@ -99,6 +99,29 @@ describe("computeMeterData", () => {
 		expect(data.barProgress).toBe(0.25);
 	});
 
+	it("regression: manual checkbox override keeps the dot row instead of collapsing to plain", () => {
+		// Previously manualOverride forced stageCount to 0, which wiped out
+		// the bottom dot row the moment a user clicked a checkbox.
+		const state = baseModelState();
+		state.getAbsoluteEntry = () => ({
+			id: "H999",
+			bond: [{ kind: "animated" }],
+		});
+		state.bond.manualOverride = true;
+		state.bond.stageCount = 3;
+		state.bond.stageIndex = 2;
+		state.bond.sequenceBars = [{ animationName: "40_end", loop: true }];
+		state.bond.activeBarIndex = 0;
+		state.bond.barProgress = 0.5;
+
+		const data = computeMeterData("bond", state as ModelState);
+
+		expect(data.kind).toBe("bars");
+		expect(data.dotCount).toBe(3);
+		expect(data.currentDot).toBe(2);
+		expect(data.bars).toEqual([{ animationName: "40_end", loop: true }]);
+	});
+
 	it("bond view with an active stills presentation reports one dot per image", () => {
 		const state = baseModelState();
 		state.getAbsoluteEntry = () => ({

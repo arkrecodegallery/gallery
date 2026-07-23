@@ -17,6 +17,7 @@ export class HeroViewState {
 
 	private idleName?: string;
 	private activeClipName?: string;
+	private activeClipLoop = false;
 	private activeTrackIndex = 0;
 	private lastSkeletonData?: SkeletonData;
 
@@ -31,6 +32,7 @@ export class HeroViewState {
 		this.selectedIndex = 0;
 		this.playingIndex = -1;
 		this.activeClipName = undefined;
+		this.activeClipLoop = false;
 	}
 
 	cycleSelection(skeletonData: SkeletonData) {
@@ -50,8 +52,35 @@ export class HeroViewState {
 		}
 
 		this.activeClipName = name;
+		this.activeClipLoop = false;
 		this.playingIndex = this.selectedIndex;
 		return true;
+	}
+
+	// checkbox-driven: any animation, always loops, switches freely
+	setChecked(skeletonData: SkeletonData, name: string, checked: boolean) {
+		this.syncEligibility(skeletonData);
+
+		if (!checked) {
+			if (this.activeClipName === name) {
+				this.activeClipName = undefined;
+				this.activeClipLoop = false;
+				this.playingIndex = -1;
+			}
+			return;
+		}
+
+		this.activeClipName = name;
+		this.activeClipLoop = true;
+		const index = this.eligibleNames.indexOf(name);
+		this.playingIndex = index;
+		if (index !== -1) {
+			this.selectedIndex = index;
+		}
+	}
+
+	currentClipName(): string | undefined {
+		return this.activeClipName ?? this.idleName;
 	}
 
 	getAnimation(
@@ -69,15 +98,24 @@ export class HeroViewState {
 			});
 		}
 
+		this.activeTrackIndex = animations.length;
 		if (this.activeClipName) {
 			const clipName = this.activeClipName;
-			this.activeTrackIndex = animations.length;
 			animations.push({
 				trackIndex: this.activeTrackIndex,
 				animationName: clipName,
-				loop: false,
+				loop: this.activeClipLoop,
 			});
-			this.registerCompletion(animationState, clipName);
+			if (!this.activeClipLoop) {
+				this.registerCompletion(animationState, clipName);
+			}
+		} else if (this.idleName) {
+			// keeps the 2nd track explicit so a stopped clip doesn't linger
+			animations.push({
+				trackIndex: this.activeTrackIndex,
+				animationName: this.idleName,
+				loop: true,
+			});
 		}
 
 		return animations;
@@ -97,6 +135,7 @@ export class HeroViewState {
 				}
 
 				this.activeClipName = undefined;
+				this.activeClipLoop = false;
 				this.playingIndex = -1;
 				animationState.removeListener(listener);
 			},

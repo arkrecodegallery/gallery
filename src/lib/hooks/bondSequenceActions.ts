@@ -65,7 +65,8 @@ export class BondSequenceActions {
 		}
 
 		const animate = new Animate(store.skeletonData.animations, rule);
-		this.state.sequencer.takeManualControl(animate, name);
+		const orderedNames = store.skeletonData.animations.map((a) => a.name);
+		this.state.sequencer.takeManualControl(animate, name, orderedNames);
 		this.state.syncMeta(animate);
 	}
 

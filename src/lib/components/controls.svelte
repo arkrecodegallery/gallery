@@ -12,7 +12,7 @@
 
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
-	const stageMap = $derived(store.modelState.bondAnimationStageMap());
+	const stageMap = $derived(store.modelState.animationStageMap());
 
 	function stageBarClass(index: number): string | undefined {
 		const stage = stageMap?.get(animations[index].name);

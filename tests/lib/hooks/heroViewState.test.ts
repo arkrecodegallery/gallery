@@ -63,7 +63,7 @@ describe("HeroViewState", () => {
 		expect(state.playSelected(skeleton)).toBe(false); // clip already active
 	});
 
-	it("getAnimation keeps idle on track 0 and layers the selected clip on the next track", () => {
+	it("getAnimation keeps idle on track 0 and plays the selected clip once on the next track", () => {
 		const skeleton = fakeSkeleton(["00_Idle", "04_Touch"]);
 		const state = new HeroViewState();
 		const animationState = new FakeAnimationState();
@@ -93,6 +93,33 @@ describe("HeroViewState", () => {
 
 		expect(state.playingIndex).toBe(-1);
 		expect(animationState.getCurrent(0)?.trackTime).toBe(0);
+	});
+
+	it("setChecked loops any animation (not just eligible ones) and switches directly between them", () => {
+		const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "90_BG"]);
+		const state = new HeroViewState();
+		const animationState = new FakeAnimationState();
+
+		state.setChecked(skeleton, "90_BG", true);
+		expect(state.currentClipName()).toBe("90_BG");
+		expect(
+			state.getAnimation(skeleton, animationState as unknown as AnimationState)
+		).toEqual([
+			{ trackIndex: 0, animationName: "00_Idle", loop: true },
+			{ trackIndex: 1, animationName: "90_BG", loop: true },
+		]);
+
+		state.setChecked(skeleton, "04_Touch", true);
+		expect(state.currentClipName()).toBe("04_Touch");
+
+		state.setChecked(skeleton, "04_Touch", false);
+		expect(state.currentClipName()).toBe("00_Idle");
+		expect(
+			state.getAnimation(skeleton, animationState as unknown as AnimationState)
+		).toEqual([
+			{ trackIndex: 0, animationName: "00_Idle", loop: true },
+			{ trackIndex: 1, animationName: "00_Idle", loop: true },
+		]);
 	});
 
 	it("resets selection when the skeleton changes", () => {

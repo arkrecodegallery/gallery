@@ -18,6 +18,20 @@ import {
 	findIdleAnimationName,
 } from "$lib/core/idleAnimation";
 import { computeBarProgress } from "$lib/core/bondProgress";
+import { TOUCH_NAMES, CUTSCENE_NAMES } from "$lib/core/skillAnimations";
+
+const POSSIBLE_BG_NAMES = [
+	"90_BG",
+	"90_BG2",
+	"90_BG3",
+	"90_BG_Loop",
+	"90_Sparkle",
+	"90_BG_02",
+];
+
+// dedicated track for checkbox-driven skill loops; kept well clear of
+// the dynamic idle/bg/touch/cutscene track indices below
+const SKILL_CHECKBOX_TRACK = 50;
 
 function fromLocalStorage(item: string): number {
 	const value = localStorage.getItem(item);
@@ -42,7 +56,9 @@ export class ModelState {
 	modelUpdate: boolean = false;
 
 	skillActiveTrackIndex = 0;
+	skillActiveAnimationName?: string;
 	skillBarProgress: number = $state(0);
+	private lastSkillSkeletonData?: SkeletonData;
 
 	public readonly bond = new BondViewState();
 	public readonly heroAnimation = new HeroViewState();
@@ -157,7 +173,7 @@ export class ModelState {
 		return update;
 	}
 
-	public bondAnimationStageMap(): Map<string, number> | undefined {
+	public animationStageMap(): Map<string, number> | undefined {
 		return this.bond.stageMap(this.getAbsoluteEntry().id);
 	}
 
@@ -168,6 +184,13 @@ export class ModelState {
 				name,
 				checked
 			);
+		} else if (
+			(store.view === "hero" || store.view === "alt") &&
+			store.skeletonData
+		) {
+			this.heroAnimation.setChecked(store.skeletonData, name, checked);
+		} else if (store.view === "skill") {
+			this.setSkillChecked(name, checked);
 		}
 
 		if (!additive) {
@@ -231,6 +254,61 @@ export class ModelState {
 		if (keys.length !== 1 || keys[0] !== current) {
 			this.animations = { [current]: 0 };
 		}
+	}
+
+	public syncHeroCheckboxState() {
+		if (store.view !== "hero" && store.view !== "alt") {
+			return;
+		}
+
+		const current = this.heroAnimation.currentClipName();
+		const keys = Object.keys(this.animations);
+		if (current === undefined) {
+			if (keys.length !== 0) {
+				this.animations = {};
+			}
+		} else if (keys.length !== 1 || keys[0] !== current) {
+			this.animations = { [current]: 0 };
+		}
+	}
+
+	public syncSkillCheckboxState(animationState: AnimationState) {
+		if (store.view !== "skill" || !store.skeletonData) {
+			return;
+		}
+
+		// reflect the q/e one-shot clip while it's actually playing
+		const oneShot =
+			this.skillActiveTrackIndex !== 0
+				? animationState.getCurrent(this.skillActiveTrackIndex)?.animation?.name
+				: undefined;
+
+		const current =
+			oneShot ??
+			this.skillActiveAnimationName ??
+			findIdleAnimationName(store.skeletonData.animations);
+		const keys = Object.keys(this.animations);
+		if (current === undefined) {
+			if (keys.length !== 0) {
+				this.animations = {};
+			}
+		} else if (keys.length !== 1 || keys[0] !== current) {
+			this.animations = { [current]: 0 };
+		}
+	}
+
+	// checkbox-driven: any animation, always loops, switches freely
+	private setSkillChecked(name: string, checked: boolean) {
+		if (!checked) {
+			if (this.skillActiveAnimationName === name) {
+				this.skillActiveAnimationName = undefined;
+				this.animationUpdate = true;
+			}
+			return;
+		}
+
+		this.skillActiveAnimationName = name;
+		this.animationUpdate = true;
 	}
 
 	public updateBondPlaybackProgress(animationState: AnimationState) {
@@ -302,28 +380,24 @@ export class ModelState {
 		skeletonData: SkeletonData,
 		animationState: AnimationState
 	): Animation[] {
+		if (this.lastSkillSkeletonData !== skeletonData) {
+			this.lastSkillSkeletonData = skeletonData;
+			this.skillActiveAnimationName = undefined;
+			this.skillActiveTrackIndex = 0;
+		}
+
 		const animations: Animation[] = [];
 		const idleName = findIdleAnimationName(skeletonData.animations);
 		if (idleName) {
 			animations.push({ trackIndex: 0, animationName: idleName, loop: true });
 		}
 
-		const possibleBg = [
-			"90_BG",
-			"90_BG2",
-			"90_BG3",
-			"90_BG_Loop",
-			"90_Sparkle",
-			"90_BG_02",
-		];
 		const beforeBg = animations.length;
-		this.tryAddAnimations(animations, possibleBg, skeletonData);
+		this.tryAddAnimations(animations, POSSIBLE_BG_NAMES, skeletonData);
 		const bgAnimations = animations.slice(beforeBg);
 
 		if (this.touch || this.cutScene) {
-			const possible = this.touch
-				? ["04_Touch", "01_Touch"]
-				: ["02_CutIn", "02_Cutin", "02_Cutln", "03_CutIn", "03_Cutin"];
+			const possible = this.touch ? TOUCH_NAMES : CUTSCENE_NAMES;
 			const touch = this.touch;
 			const cutScene = this.cutScene;
 			this.touch = false;
@@ -334,6 +408,10 @@ export class ModelState {
 					animationState.setEmptyAnimation(trackIndex, 0);
 				}
 			}
+
+			// silence the checkbox loop track so it can't outrank
+			// (and stomp) the one-shot animation about to play
+			animationState.setEmptyAnimation(SKILL_CHECKBOX_TRACK, 0);
 
 			const startingTrack = animations.length;
 			animations.splice(0, animations.length);
@@ -370,11 +448,37 @@ export class ModelState {
 						}
 					}
 
+					const resumeName = this.skillActiveAnimationName ?? idleName;
+					if (resumeName) {
+						animationState.setAnimation(SKILL_CHECKBOX_TRACK, resumeName, true);
+					}
+
 					this.skillActiveTrackIndex = 0;
 					animationState.removeListener(listener);
 				},
 			};
 			animationState.addListener(listener);
+		}
+
+		// checkbox-driven loop, on its own track so it never
+		// collides with the touch/cutscene one-shot flow above.
+		// Skipped while a one-shot owns the higher-priority tracks
+		// (see the setEmptyAnimation/resumeName above) so it can't
+		// stomp the one-shot's pose.
+		if (this.skillActiveTrackIndex === 0) {
+			if (this.skillActiveAnimationName) {
+				animations.push({
+					trackIndex: SKILL_CHECKBOX_TRACK,
+					animationName: this.skillActiveAnimationName,
+					loop: true,
+				});
+			} else if (idleName) {
+				animations.push({
+					trackIndex: SKILL_CHECKBOX_TRACK,
+					animationName: idleName,
+					loop: true,
+				});
+			}
 		}
 
 		return animations;

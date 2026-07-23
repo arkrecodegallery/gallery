@@ -10,11 +10,22 @@
 
 {#if data.kind === "plain"}
 	{@const disabled = store.view === "collection"}
-	<div
-		class="h-1 w-full {disabled
-			? 'bg-disabled'
-			: 'bg-foreground'} rounded-full mt-2 {className}"
-	></div>
+	<div class="flex flex-col gap-2 w-full mt-2 {className}">
+		<div class="flex gap-1">
+			<div
+				class="flex-1 h-1 rounded-full {disabled
+					? 'bg-disabled'
+					: 'bg-foreground'}"
+			></div>
+		</div>
+		<div class="flex gap-1">
+			<div
+				class="flex-1 h-1 rounded-full {disabled
+					? 'bg-disabled'
+					: 'bg-foreground'}"
+			></div>
+		</div>
+	</div>
 {:else}
 	<div class="flex flex-col gap-2 w-full mt-2 {className}">
 		<div class="flex gap-1">

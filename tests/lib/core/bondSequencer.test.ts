@@ -189,7 +189,7 @@ describe("BondSequencer", () => {
 			expect(sequencer.manualOverride).toBe(false);
 		});
 
-		it("leaves the stage index untouched if the picked animation isn't part of any stage", () => {
+		it("leaves the stage index untouched if the picked animation isn't part of any stage and no ordering is given", () => {
 			const animate = new Animate(anims(["00_idle", "20_loop"]));
 			const sequencer = new BondSequencer();
 
@@ -199,6 +199,24 @@ describe("BondSequencer", () => {
 			sequencer.takeManualControl(animate, "not_a_real_animation");
 
 			expect(sequencer.manualOverride).toBe(true);
+			expect(sequencer.stageIndex).toBe(1);
+		});
+
+		it("regression: a pick with no stage of its own (background/skip) re-anchors to the nearest stage before it", () => {
+			// 90_BG is pulled into Animate's separate background channel, so it
+			// has no entry in stageByName - the checklist still lets you check
+			// it though, and clicking it shouldn't wipe out stage tracking.
+			const animate = new Animate(
+				anims(["00_idle", "20_loop", "90_BG", "40_end"])
+			);
+			const sequencer = new BondSequencer();
+			const orderedNames = ["00_idle", "20_loop", "90_BG", "40_end"];
+
+			sequencer.enterStage(animate, 0);
+			sequencer.takeManualControl(animate, "90_BG", orderedNames);
+
+			expect(sequencer.manualOverride).toBe(true);
+			// nearest preceding animation with a stage is 20_loop (stage 1)
 			expect(sequencer.stageIndex).toBe(1);
 		});
 	});

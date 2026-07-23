@@ -9,6 +9,7 @@ use crate::{
         DIR_ASSETS, DIR_CONTAINERS, FIELD_DYNAMIC, FIELD_ID, FIELD_PREFAB, FILE_ARTIFACT,
         FILE_ROLE, FILE_ROLE_COLLECTION,
     },
+    rules::Rules,
     variables::VariableLookup,
 };
 
@@ -25,6 +26,8 @@ pub enum MissingKey {
 pub struct Missing {
     log: BTreeMap<String, BTreeMap<MissingKey, Vec<String>>>,
 
+    // heros with a Role.txt row but no shipped skel/atlas assets yet
+    unreleased: BTreeSet<String>,
     // skels that weren't used by any hero
     // sometimes odd extra file like Cutscene
     unused_skels: BTreeSet<(String, String)>,
@@ -40,6 +43,7 @@ impl Missing {
     pub fn new(assets: &AssetLookup, variables: &VariableLookup) -> Self {
         Self {
             log: BTreeMap::new(),
+            unreleased: BTreeSet::new(),
             unused_skels: Self::collect_skels(assets),
             unused_cg: Self::collect_cg(variables),
             missing_cg: BTreeSet::new(),
@@ -123,7 +127,15 @@ impl Missing {
         self.unused_cg.remove(&id);
     }
 
-    pub fn cleanup(&mut self, dir_gallery_data: &str) {
+    pub fn record_unreleased(&mut self, id: String) {
+        self.unreleased.insert(id);
+    }
+
+    pub fn cleanup(&mut self, dir_gallery_data: &str, rules: &Rules) {
+        self.unused_skels
+            .retain(|(container, file)| !rules.is_skel_suppressed(container, file));
+        self.unused_cg.retain(|cg| !rules.is_cg_suppressed(cg));
+
         let missing = |cg: &str| -> bool {
             let path = format!(
                 "{}{}{}CG/{}",

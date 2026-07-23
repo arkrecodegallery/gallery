@@ -6,9 +6,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     assets::AssetGroup,
-    constants::DIR_CONTAINERS,
+    constants::{DIR_ASSETS, DIR_CONTAINERS, DIR_GENERATED},
     entry::Entry,
     missing::{Missing, MissingKey},
+    rules::Rules,
 };
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -57,6 +58,53 @@ impl Bundle {
             Err(anyhow!("no lines to read in atlas '{}'", self.atlas))
         }
     }
+
+    pub fn with_generated_mat(&self, id: &str, source_dir: &str) -> Result<Bundle> {
+        let atlas_path = format!("{}{}{}", &self.dir_gallery_data, DIR_CONTAINERS, self.atlas);
+        let mat_name = self
+            .get_atlas_mat(&atlas_path)
+            .with_context(|| format!("could not read atlas '{}'", atlas_path))?;
+
+        let real_texture = format!(
+            "{}{}{}{}{}",
+            &self.dir_gallery_data, DIR_CONTAINERS, DIR_ASSETS, source_dir, mat_name
+        );
+        if !std::path::Path::new(&real_texture).exists() {
+            return Err(anyhow!("no texture at override source '{}'", real_texture));
+        }
+
+        let generated_dir = format!("{}{}{}/", &self.dir_gallery_data, DIR_GENERATED, id);
+        std::fs::create_dir_all(&generated_dir)
+            .with_context(|| format!("could not create generated dir '{}'", generated_dir))?;
+
+        copy_if_changed(&real_texture, &format!("{}{}", generated_dir, mat_name))?;
+
+        let atlas_name = std::path::Path::new(&self.atlas)
+            .file_name()
+            .and_then(|name| name.to_str())
+            .ok_or_else(|| anyhow!("could not derive atlas file name from '{}'", self.atlas))?;
+        copy_if_changed(&atlas_path, &format!("{}{}", generated_dir, atlas_name))?;
+
+        Ok(Bundle {
+            dir_gallery_data: self.dir_gallery_data.clone(),
+            skel: self.skel.clone(),
+            atlas: format!("../{}{}/{}", DIR_GENERATED, id, atlas_name),
+        })
+    }
+}
+
+fn copy_if_changed(src: &str, dest: &str) -> Result<()> {
+    let unchanged = match (std::fs::metadata(src), std::fs::metadata(dest)) {
+        (Ok(src_meta), Ok(dest_meta)) => src_meta.len() == dest_meta.len(),
+        _ => false,
+    };
+
+    if !unchanged {
+        std::fs::copy(src, dest)
+            .with_context(|| format!("could not copy '{}' to '{}'", src, dest))?;
+    }
+
+    Ok(())
 }
 
 /// A resolved main bundle plus its optional alt-costume counterpart.
@@ -80,15 +128,22 @@ pub struct BundleProcessor<'a> {
     alt: Bundle,
     alt_regex: Option<&'a Regex>,
     key: MissingKey,
+    rules: &'a Rules,
 }
 
 impl<'a> BundleProcessor<'a> {
-    pub fn new(dir_gallery_data: &str, alt_regex: Option<&'a Regex>, key: MissingKey) -> Self {
+    pub fn new(
+        dir_gallery_data: &str,
+        alt_regex: Option<&'a Regex>,
+        key: MissingKey,
+        rules: &'a Rules,
+    ) -> Self {
         Self {
             main: Bundle::new(dir_gallery_data),
             alt: Bundle::new(dir_gallery_data),
             alt_regex,
             key,
+            rules,
         }
     }
 
@@ -196,6 +251,14 @@ impl<'a> BundleProcessor<'a> {
         match bundle.is_valid() {
             Ok(true) => Some(bundle.clone()),
             Ok(false) => {
+                if matches!(self.key, MissingKey::Hero) {
+                    if let Some(source_dir) = self.rules.get_mat_source(id) {
+                        if let Ok(fixed) = bundle.with_generated_mat(id, source_dir) {
+                            return Some(fixed);
+                        }
+                    }
+                }
+
                 missing.insert_log(
                     id.to_string(),
                     self.key,

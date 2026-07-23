@@ -44,7 +44,7 @@ fn _generate_map(dir_gallery_data: String) -> Result<()> {
             map.insert(id.clone(), entry);
         }
     }
-    missing.cleanup(&dir_gallery_data);
+    missing.cleanup(&dir_gallery_data, &rules);
 
     // write map files for use by frontend
     write_json(&dir_gallery_data, FILE_MAP, &map)?;

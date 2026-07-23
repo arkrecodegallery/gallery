@@ -72,6 +72,13 @@ https://hex-rays.com/pricing?section=individuals
 		- also has a role_motions entry
 	- sometimes in odd locations
 
+- H067's still bond (A0040, motion `CG_1`) is missing
+	- The `A0040_1` still image is real, but Unity filed it under
+	  `CG/Carnival006/Carnival006_LoveTalk_03_Controller/CG_1.anim`, not
+	  `CG/A0040/` like `find_still` expects
+	- Same "wrong folder" shape as the H149/A0261/A0262 collection fix, but
+	  deferred for now - ignored rather than special-cased
+
 - Other files of interest
 	- AudioClip
 	- BoxCollider

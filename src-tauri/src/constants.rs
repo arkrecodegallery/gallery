@@ -9,6 +9,7 @@ macro_rules! declare_consts {
 declare_consts! {
     FILE_ASSETS_XML = "assets.xml",
     DIR_CONTAINERS = "containers/",
+    DIR_GENERATED = "generated/",
     FILE_MAP = "map.json",
     FILE_MISSING = "missing.json",
 

@@ -2,6 +2,7 @@ use itertools::Itertools;
 
 use crate::assets::AssetLookup;
 use crate::missing::{Missing, MissingKey};
+use crate::rules::Rules;
 
 use super::bond::{find_role_collection_rows, RoleCollectionQuery};
 use super::GalleryContext;
@@ -22,14 +23,17 @@ pub(super) fn init_collection(
         .into_iter()
         .filter_map(|row| {
             missing.record_cg(row.cg_id.clone());
-            find_collection(id, &row.cg_id, ctx.assets, missing)
+            find_collection(id, &row.cg_id, ctx.assets, ctx.rules, missing)
         })
         .collect();
 
     Some(result)
 }
 
-fn find_collection(id: &str, cg: &str, assets: &AssetLookup, missing: &mut Missing) -> Option<String> {
+/// Looks for `cg`'s image under a given folder id, which is normally `cg`
+/// itself but may be a sibling id via `Rules::get_collection_redirect` when
+/// the texture was attributed to a paired CG's container instead.
+fn try_find(assets: &AssetLookup, cg: &str, folder_id: &str) -> Option<String> {
     let search = |prefix: &str, container_suffix: &str| -> Option<CollectionMatch> {
         assets.get_by_prefix(prefix).into_iter().find_map(|group| {
             if !group.container.ends_with(container_suffix) {
@@ -50,18 +54,39 @@ fn find_collection(id: &str, cg: &str, assets: &AssetLookup, missing: &mut Missi
         })
     };
 
-    if let Some(shallow) = search(&format!("CG/{}/", cg), &format!("/{}_LoveTalk.prefab", cg)) {
+    if let Some(shallow) = search(
+        &format!("CG/{}/", folder_id),
+        &format!("/{}_LoveTalk.prefab", folder_id),
+    ) {
         let segments: Vec<&str> = shallow.container.split("/").collect();
         let parent = segments[..segments.len().saturating_sub(1)].join("/");
         Some(format!("{}/{}.png", parent, shallow.file_name))
-    } else if let Some(deep) = search(&format!("CG/{}/Img", cg), &format!("/{}.png", cg)) {
-        Some(deep.container)
     } else {
+        search(&format!("CG/{}/Img", folder_id), &format!("/{}.png", folder_id))
+            .map(|deep| deep.container)
+    }
+}
+
+fn find_collection(
+    id: &str,
+    cg: &str,
+    assets: &AssetLookup,
+    rules: &Rules,
+    missing: &mut Missing,
+) -> Option<String> {
+    let result = try_find(assets, cg, cg).or_else(|| {
+        rules
+            .get_collection_redirect(cg)
+            .and_then(|redirect| try_find(assets, cg, redirect))
+    });
+
+    if result.is_none() {
         missing.insert_log(
             id.to_string(),
             MissingKey::Collection,
             format!("Missing image (id '{}')", cg),
         );
-        None
     }
+
+    result
 }

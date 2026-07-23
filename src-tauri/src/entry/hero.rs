@@ -13,9 +13,19 @@ pub(super) fn init_hero(
     missing: &mut Missing,
 ) -> Option<MainAndAlt> {
     let assets = collect_hero_assets(id, ctx.assets, ctx.rules);
+    if assets.is_empty() {
+        missing.record_unreleased(id.to_string());
+        return None;
+    }
+
     let alt_regex = ctx.rules.get_alt(id).and_then(|p| Regex::new(p).ok());
 
-    let mut processor = BundleProcessor::new(ctx.dir_gallery_data, alt_regex.as_ref(), MissingKey::Hero);
+    let mut processor = BundleProcessor::new(
+        ctx.dir_gallery_data,
+        alt_regex.as_ref(),
+        MissingKey::Hero,
+        ctx.rules,
+    );
     processor.process_assets(assets, missing);
     processor.get_both_and_log(id, id, missing)
 }
@@ -29,6 +39,8 @@ fn collect_hero_assets(id: &str, assets: &AssetLookup, rules: &Rules) -> Vec<Ass
                 assets.get_by_prefix(&prefix)
             })
             .collect()
+    } else if let Some(path_override) = rules.get_hero_path_override(id) {
+        assets.get_by_prefix(path_override)
     } else {
         let prefix = format!("Hero/{}/{}/", id, id);
         assets.get_by_prefix(&prefix)
@@ -39,7 +51,7 @@ pub(super) fn init_skill(ctx: &GalleryContext, id: &str, missing: &mut Missing) 
     let prefix = format!("Hero/{}/{}_S/", id, id);
     let assets = ctx.assets.get_by_prefix(&prefix);
 
-    let mut processor = BundleProcessor::new(ctx.dir_gallery_data, None, MissingKey::Skill);
+    let mut processor = BundleProcessor::new(ctx.dir_gallery_data, None, MissingKey::Skill, ctx.rules);
     processor.process_assets(assets, missing);
     processor.get_main_and_log(id, &format!("{}_S", id), missing, MissingAssetPolicy::Ignore)
 }

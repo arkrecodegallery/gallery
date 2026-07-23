@@ -48,7 +48,8 @@ pub(super) fn init_bond(
             let prefix = format!("CG/{}/{}/", row.cg_id, row.cg_id);
             let assets = ctx.assets.get_by_prefix(&prefix);
 
-            let mut processor = BundleProcessor::new(ctx.dir_gallery_data, None, MissingKey::Bond);
+            let mut processor =
+                BundleProcessor::new(ctx.dir_gallery_data, None, MissingKey::Bond, ctx.rules);
             processor.process_assets(assets, missing);
 
             if let Some(bundle) =

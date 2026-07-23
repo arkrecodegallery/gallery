@@ -100,7 +100,10 @@
 			</Table.Header>
 			<Table.Body>
 				{#each table.getRowModel().rows as row (row.id)}
-					<Table.Row data-state={row.getIsSelected() && "selected"}>
+					<Table.Row
+						data-state={row.getIsSelected() && "selected"}
+						data-row-index={row.id}
+					>
 						{#each row.getVisibleCells() as cell (cell.id)}
 							<Table.Cell
 								class="first:sticky first:left-0 first:bg-background first:pr-3"

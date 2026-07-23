@@ -4,6 +4,7 @@ use crate::constants::{
     DETAIL_BIRTHDAY, DETAIL_CONSTELLATION, DETAIL_CUP_SIZE, DETAIL_ELEMENT, DETAIL_HEIGHT,
     DETAIL_JOB, DETAIL_NAME, DETAIL_STARS, DETAIL_WEIGHT, DIR_ASSETS, FILE_ROLE,
 };
+use crate::rules::Rules;
 use crate::variables::VariableLookup;
 
 #[derive(Serialize, Deserialize, Clone, Default)]
@@ -36,7 +37,7 @@ pub(super) struct Details {
 }
 
 impl Details {
-    pub(super) fn new(id: &str, variables: &VariableLookup) -> Self {
+    pub(super) fn new(id: &str, variables: &VariableLookup, rules: &Rules) -> Self {
         let mut details = Self::default();
 
         macro_rules! lookup_field {
@@ -58,7 +59,7 @@ impl Details {
         lookup_field!(variables, id, DETAIL_WEIGHT => weight);
 
         if details.name == "" {
-            details.name = id.to_string();
+            details.name = rules.get_name(id).unwrap_or(id).to_string();
         }
 
         details

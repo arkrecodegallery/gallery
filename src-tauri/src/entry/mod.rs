@@ -50,7 +50,7 @@ impl Entry {
         Some(Self {
             id: id.to_string(),
             icons: details::init_icons(id),
-            details: Details::new(id, ctx.variables),
+            details: Details::new(id, ctx.variables, ctx.rules),
 
             hero,
             alt,

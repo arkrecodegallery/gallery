@@ -117,6 +117,10 @@ impl Rules {
         self.alt.get(id).copied()
     }
 
+    pub fn get_name(&self, id: &str) -> Option<&str> {
+        self.names.get(id).copied()
+    }
+
     pub fn get_extra(&self) -> Vec<&str> {
         self.extra.clone()
     }

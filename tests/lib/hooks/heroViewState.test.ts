@@ -8,6 +8,8 @@ import type {
 } from "@esotericsoftware/spine-core";
 import { HeroViewState } from "$lib/hooks/heroViewState.svelte";
 
+const HERO_ID = "H001";
+
 function anims(names: string[]): Animation[] {
 	return names.map((name) => ({ name }) as Animation);
 }
@@ -45,11 +47,11 @@ describe("HeroViewState", () => {
 		const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop", "90_BG"]);
 		const state = new HeroViewState();
 
-		state.cycleSelection(skeleton);
+		state.cycleSelection(skeleton, HERO_ID);
 		expect(state.eligibleNames).toEqual(["04_Touch", "20_Loop"]);
 		expect(state.selectedIndex).toBe(1);
 
-		state.cycleSelection(skeleton);
+		state.cycleSelection(skeleton, HERO_ID);
 		expect(state.selectedIndex).toBe(0); // wraps back around
 	});
 
@@ -57,10 +59,10 @@ describe("HeroViewState", () => {
 		const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
 		const state = new HeroViewState();
 
-		expect(state.playSelected(skeleton)).toBe(true);
+		expect(state.playSelected(skeleton, HERO_ID)).toBe(true);
 		expect(state.playingIndex).toBe(0);
 
-		expect(state.playSelected(skeleton)).toBe(false); // clip already active
+		expect(state.playSelected(skeleton, HERO_ID)).toBe(false); // clip already active
 	});
 
 	it("getAnimation keeps idle on track 0 and plays the selected clip once on the next track", () => {
@@ -68,10 +70,11 @@ describe("HeroViewState", () => {
 		const state = new HeroViewState();
 		const animationState = new FakeAnimationState();
 
-		state.playSelected(skeleton);
+		state.playSelected(skeleton, HERO_ID);
 		const result = state.getAnimation(
 			skeleton,
-			animationState as unknown as AnimationState
+			animationState as unknown as AnimationState,
+			HERO_ID
 		);
 
 		expect(result).toEqual([
@@ -85,8 +88,8 @@ describe("HeroViewState", () => {
 		const state = new HeroViewState();
 		const animationState = new FakeAnimationState();
 
-		state.playSelected(skeleton);
-		state.getAnimation(skeleton, animationState as unknown as AnimationState);
+		state.playSelected(skeleton, HERO_ID);
+		state.getAnimation(skeleton, animationState as unknown as AnimationState, HERO_ID);
 		animationState.setTrack(0, "00_Idle", 5);
 
 		animationState.complete({ animation: { name: "04_Touch" } } as TrackEntry);
@@ -100,22 +103,22 @@ describe("HeroViewState", () => {
 		const state = new HeroViewState();
 		const animationState = new FakeAnimationState();
 
-		state.setChecked(skeleton, "90_BG", true);
+		state.setChecked(skeleton, "90_BG", true, HERO_ID);
 		expect(state.currentClipName()).toBe("90_BG");
 		expect(
-			state.getAnimation(skeleton, animationState as unknown as AnimationState)
+			state.getAnimation(skeleton, animationState as unknown as AnimationState, HERO_ID)
 		).toEqual([
 			{ trackIndex: 0, animationName: "00_Idle", loop: true },
 			{ trackIndex: 1, animationName: "90_BG", loop: true },
 		]);
 
-		state.setChecked(skeleton, "04_Touch", true);
+		state.setChecked(skeleton, "04_Touch", true, HERO_ID);
 		expect(state.currentClipName()).toBe("04_Touch");
 
-		state.setChecked(skeleton, "04_Touch", false);
+		state.setChecked(skeleton, "04_Touch", false, HERO_ID);
 		expect(state.currentClipName()).toBe("00_Idle");
 		expect(
-			state.getAnimation(skeleton, animationState as unknown as AnimationState)
+			state.getAnimation(skeleton, animationState as unknown as AnimationState, HERO_ID)
 		).toEqual([
 			{ trackIndex: 0, animationName: "00_Idle", loop: true },
 			{ trackIndex: 1, animationName: "00_Idle", loop: true },
@@ -127,10 +130,20 @@ describe("HeroViewState", () => {
 		const skeleton2 = fakeSkeleton(["00_Idle", "05_Wave"]);
 		const state = new HeroViewState();
 
-		state.cycleSelection(skeleton1);
-		state.cycleSelection(skeleton2);
+		state.cycleSelection(skeleton1, HERO_ID);
+		state.cycleSelection(skeleton2, HERO_ID);
 
 		expect(state.eligibleNames).toEqual(["05_Wave"]);
+		expect(state.selectedIndex).toBe(0);
+	});
+
+	it("resets selection when the hero id changes on the same skeleton reference", () => {
+		const skeleton = fakeSkeleton(["00_Idle", "04_Touch"]);
+		const state = new HeroViewState();
+
+		state.cycleSelection(skeleton, "H001");
+		state.cycleSelection(skeleton, "H002");
+
 		expect(state.selectedIndex).toBe(0);
 	});
 });

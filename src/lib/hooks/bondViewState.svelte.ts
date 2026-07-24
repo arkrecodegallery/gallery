@@ -36,7 +36,7 @@ export class BondViewState {
 
 		if (store.view === "hero" || store.view === "alt") {
 			return this.namesToMap(
-				getEligibleAnimationNames(store.skeletonData.animations)
+				getEligibleAnimationNames(store.skeletonData.animations, heroId)
 			);
 		}
 

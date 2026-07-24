@@ -10,17 +10,17 @@ function anims(names: string[]): Animation[] {
 describe("getEligibleAnimationNames", () => {
 	it("excludes the detected idle animation and anything prefixed 90 or above", () => {
 		const names = anims(["00_Idle", "04_Touch", "20_Loop", "90_BG"]);
-		expect(getEligibleAnimationNames(names)).toEqual(["04_Touch", "20_Loop"]);
+		expect(getEligibleAnimationNames(names, "H001")).toEqual(["04_Touch", "20_Loop"]);
 	});
 
 	it("keeps a real Touch clip, unlike Animate's bond-tuned mode taxonomy which would drop it", () => {
 		const names = anims(["00_Idle", "04_Touch"]);
-		expect(getEligibleAnimationNames(names)).toContain("04_Touch");
+		expect(getEligibleAnimationNames(names, "H001")).toContain("04_Touch");
 	});
 
 	it("returns everything under 90 when no idle animation is detected", () => {
 		const names = anims(["10_Loop", "20_Loop"]);
-		expect(getEligibleAnimationNames(names)).toEqual(["10_Loop", "20_Loop"]);
+		expect(getEligibleAnimationNames(names, "H001")).toEqual(["10_Loop", "20_Loop"]);
 	});
 });
 

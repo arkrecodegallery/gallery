@@ -142,7 +142,10 @@ export class ModelState {
 		switch (key) {
 			case keybinds.Cutscene:
 				if (heroFamily && store.skeletonData) {
-					this.heroAnimation.cycleSelection(store.skeletonData);
+					this.heroAnimation.cycleSelection(
+						store.skeletonData,
+						this.getAbsoluteEntry().id
+					);
 				} else if (store.view === "skill") {
 					this.cutScene = true;
 					this.animationUpdate = true;
@@ -156,7 +159,12 @@ export class ModelState {
 				break;
 			case keybinds.Touch:
 				if (heroFamily && store.skeletonData) {
-					if (this.heroAnimation.playSelected(store.skeletonData)) {
+					if (
+						this.heroAnimation.playSelected(
+							store.skeletonData,
+							this.getAbsoluteEntry().id
+						)
+					) {
 						this.animationUpdate = true;
 					}
 				} else if (store.view === "skill") {
@@ -205,7 +213,12 @@ export class ModelState {
 			(store.view === "hero" || store.view === "alt") &&
 			store.skeletonData
 		) {
-			this.heroAnimation.setChecked(store.skeletonData, name, checked);
+			this.heroAnimation.setChecked(
+				store.skeletonData,
+				name,
+				checked,
+				this.getAbsoluteEntry().id
+			);
 		} else if (store.view === "skill") {
 			this.setSkillChecked(name, checked);
 		}
@@ -387,7 +400,11 @@ export class ModelState {
 		}
 
 		if (store.view === "hero" || store.view === "alt") {
-			return this.heroAnimation.getAnimation(skeletonData, animationState);
+			return this.heroAnimation.getAnimation(
+				skeletonData,
+				animationState,
+				this.getAbsoluteEntry().id
+			);
 		}
 
 		return this.getSkillAnimation(skeletonData, animationState);

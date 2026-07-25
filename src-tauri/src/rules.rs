@@ -26,6 +26,8 @@ pub struct Rules {
     collection: Vec<&'static str>,
     // heros whose atlas texture isn't next to its atlas/skel
     mat_source: HashMap<&'static str, &'static str>,
+    // atlases whose texture is of the incorrect size
+    atlas_size_mismatch: HashSet<&'static str>,
     // cg ids whose image actually lives under a sibling cg id's folder
     collection_redirect: HashMap<&'static str, &'static str>,
     // (container, file) skels permanently excluded from unused_skels noise
@@ -79,6 +81,11 @@ impl Rules {
                 "H004" => "Hero/H004/",
                 "H006" => "Hero/H006/",
             },
+            atlas_size_mismatch: collection! {
+                "H183_S",
+                "H184_S",
+                "A0098",
+            },
             collection_redirect: collection! {
                 // paired CG whose LoveTalk texture is filed under the sibling id
                 "A0261" => "A0297",
@@ -131,6 +138,10 @@ impl Rules {
 
     pub fn get_mat_source(&self, id: &str) -> Option<&str> {
         self.mat_source.get(id).copied()
+    }
+
+    pub fn has_atlas_size_mismatch(&self, id: &str) -> bool {
+        self.atlas_size_mismatch.contains(id)
     }
 
     pub fn get_collection_redirect(&self, cg: &str) -> Option<&str> {

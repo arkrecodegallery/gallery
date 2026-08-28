@@ -19,6 +19,7 @@ import { BondViewState } from "./bondViewState.svelte";
 import { BondSequenceActions } from "./bondSequenceActions";
 import { BondAutoPlay } from "./bondAutoPlay";
 import { HeroViewState } from "./heroViewState.svelte";
+import { skelName } from "$lib/core/skelName";
 import {
 	POSSIBLE_IDLE_NAMES,
 	findIdleAnimationName,
@@ -142,10 +143,7 @@ export class ModelState {
 		switch (key) {
 			case keybinds.Cutscene:
 				if (heroFamily && store.skeletonData) {
-					this.heroAnimation.cycleSelection(
-						store.skeletonData,
-						this.getAbsoluteEntry().id
-					);
+					this.heroAnimation.cycleSelection(store.skeletonData, this.resolveSkelName()!);
 				} else if (store.view === "skill") {
 					this.cutScene = true;
 					this.animationUpdate = true;
@@ -160,10 +158,7 @@ export class ModelState {
 			case keybinds.Touch:
 				if (heroFamily && store.skeletonData) {
 					if (
-						this.heroAnimation.playSelected(
-							store.skeletonData,
-							this.getAbsoluteEntry().id
-						)
+						this.heroAnimation.playSelected(store.skeletonData, this.resolveSkelName()!)
 					) {
 						this.animationUpdate = true;
 					}
@@ -190,7 +185,7 @@ export class ModelState {
 	}
 
 	public animationStageMap(): Map<string, number> | undefined {
-		return this.bond.stageMap(this.getAbsoluteEntry().id);
+		return this.bond.stageMap(this.resolveSkelName()!);
 	}
 
 	public getBondPresentation(): BondPresentation | undefined {
@@ -204,11 +199,7 @@ export class ModelState {
 
 	public setAnimationChecked(name: string, checked: boolean, additive = false) {
 		if (store.view === "bond") {
-			this.bondActions.handleCheckboxSelect(
-				this.getAbsoluteEntry().id,
-				name,
-				checked
-			);
+			this.bondActions.handleCheckboxSelect(this.resolveSkelName()!, name, checked);
 		} else if (
 			(store.view === "hero" || store.view === "alt") &&
 			store.skeletonData
@@ -217,7 +208,7 @@ export class ModelState {
 				store.skeletonData,
 				name,
 				checked,
-				this.getAbsoluteEntry().id
+				this.resolveSkelName()!
 			);
 		} else if (store.view === "skill") {
 			this.setSkillChecked(name, checked);
@@ -246,14 +237,14 @@ export class ModelState {
 	}
 
 	public advanceBondStage() {
-		if (this.bondActions.advanceStage(this.getAbsoluteEntry().id)) {
+		if (this.bondActions.advanceStage(this.resolveSkelName()!)) {
 			this.animationUpdate = true;
 			this.skinUpdate = true;
 		}
 	}
 
 	public startBondAutoPlay() {
-		if (this.bondActions.startAutoPlay(this.getAbsoluteEntry().id)) {
+		if (this.bondActions.startAutoPlay(this.resolveSkelName()!)) {
 			this.animationUpdate = true;
 			this.skinUpdate = true;
 		}
@@ -274,7 +265,7 @@ export class ModelState {
 
 		const current = this.bond.currentCheckboxAnimation(
 			animationState,
-			this.getAbsoluteEntry().id
+			this.resolveSkelName()!
 		);
 		if (current === undefined) {
 			return;
@@ -380,7 +371,7 @@ export class ModelState {
 		this.bondAutoPlay.handleAnimationComplete(
 			entry,
 			animationState,
-			this.getAbsoluteEntry().id
+			this.resolveSkelName()!
 		);
 	}
 
@@ -394,7 +385,7 @@ export class ModelState {
 				skeletonData,
 				animationState,
 				skeleton,
-				this.getAbsoluteEntry().id,
+				this.resolveSkelName()!,
 				() => this.manualBondAnimations()
 			);
 		}
@@ -403,7 +394,7 @@ export class ModelState {
 			return this.heroAnimation.getAnimation(
 				skeletonData,
 				animationState,
-				this.getAbsoluteEntry().id
+				this.resolveSkelName()!
 			);
 		}
 
@@ -676,6 +667,25 @@ export class ModelState {
 
 	public getAbsoluteEntry(): Entry {
 		return this.entry(this.absoluteHeroIndex);
+	}
+
+	/** The skel name backing the currently displayed view; only defined for hero/alt/bond. */
+	private resolveSkelName(): string | undefined {
+		const entry = this.getAbsoluteEntry();
+		switch (store.view) {
+			case "hero":
+				return skelName(entry.hero.skel);
+			case "alt":
+				return entry.alt && skelName(entry.alt.skel);
+			case "bond": {
+				const presentation = entry.bond?.[this.cycleIndex];
+				return presentation?.kind === "animated"
+					? skelName(presentation.bundle.skel)
+					: undefined;
+			}
+			default:
+				return undefined;
+		}
 	}
 
 	public viewDisabled(view: ModelView): boolean {

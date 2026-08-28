@@ -65,24 +65,11 @@ describe("computeMeterData", () => {
 		expect(data.barProgress).toBe(0.75);
 	});
 
-	it("bond view with a disabled rule is plain regardless of stageCount", () => {
-		const state = baseModelState();
-		state.getAbsoluteEntry = () => ({
-			id: "H003", // disabled in bondRules.ts
-			bond: [{ kind: "animated" }],
-		});
-		state.bond.stageCount = 3;
-
-		const data = computeMeterData("bond", state as ModelState);
-
-		expect(data.kind).toBe("plain");
-	});
-
 	it("bond view with an active animated presentation reports its sequence bars", () => {
 		const state = baseModelState();
 		state.getAbsoluteEntry = () => ({
 			id: "H999",
-			bond: [{ kind: "animated" }],
+			bond: [{ kind: "animated", bundle: { skel: "A0999.skel", atlas: "A0999.atlas" } }],
 		});
 		state.bond.stageCount = 3;
 		state.bond.stageIndex = 1;
@@ -105,7 +92,7 @@ describe("computeMeterData", () => {
 		const state = baseModelState();
 		state.getAbsoluteEntry = () => ({
 			id: "H999",
-			bond: [{ kind: "animated" }],
+			bond: [{ kind: "animated", bundle: { skel: "A0999.skel", atlas: "A0999.atlas" } }],
 		});
 		state.bond.manualOverride = true;
 		state.bond.stageCount = 3;

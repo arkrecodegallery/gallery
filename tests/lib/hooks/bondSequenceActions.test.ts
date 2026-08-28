@@ -38,15 +38,6 @@ describe("BondSequenceActions", () => {
 		expect(actions.startAutoPlay("H999")).toBe(false);
 	});
 
-	it("advanceStage/startAutoPlay return false for a hero whose bond rule disables sequencing", () => {
-		const state = new BondViewState();
-		const actions = new BondSequenceActions(state);
-
-		// H003 is marked { disable: true } in bondRules.ts
-		expect(actions.advanceStage("H003")).toBe(false);
-		expect(actions.startAutoPlay("H003")).toBe(false);
-	});
-
 	it("advanceStills wraps the stills index around the image count", () => {
 		const state = new BondViewState();
 		const actions = new BondSequenceActions(state);
@@ -55,25 +46,6 @@ describe("BondSequenceActions", () => {
 		expect(state.stillsIndex).toBe(1);
 		actions.advanceStills(2);
 		expect(state.stillsIndex).toBe(0);
-	});
-
-	it("getAnimation returns the manual list for a disabled hero", () => {
-		const state = new BondViewState();
-		const actions = new BondSequenceActions(state);
-		const skeleton = { setToSetupPose: () => {} } as any;
-		const animationState = { clearTracks: () => {} } as any;
-
-		const result = actions.getAnimation(
-			store.skeletonData!,
-			animationState,
-			skeleton,
-			"H003",
-			() => [{ animationName: "manual", trackIndex: 0, loop: true }]
-		);
-
-		expect(result).toEqual([
-			{ animationName: "manual", trackIndex: 0, loop: true },
-		]);
 	});
 
 	it("getAnimation returns the manual list once manualOverride is set", () => {

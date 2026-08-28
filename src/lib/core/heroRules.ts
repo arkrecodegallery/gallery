@@ -3,10 +3,12 @@ export interface HeroRule {
 	skip?: string[];
 }
 
+// Keyed by skel basename (see skelName.ts), not hero id: a hero's alt skel
+// is a distinct file (e.g. H003 vs H003b) that needs its own entry here.
 const rules: Record<string, HeroRule> = {
 	H009: { skip: ["00_Idle2"] },
 	H023: { skip: ["00_Idle2"] },
-	H027: { skip: ["00_Idle2"] },
+	CG_H027_a: { skip: ["00_Idle2"] }, // H027's hero skel is named CG_H027_a, not H027
 	H032: { skip: ["01_Attack1"] },
 	H047: { skip: ["00_Idle2"] },
 	H049: { skip: ["00_Idle_B"] },
@@ -30,6 +32,6 @@ const rules: Record<string, HeroRule> = {
 	H148: { skip: ["01_Attack_Lion"] },
 };
 
-export function getHeroRule(id: string): HeroRule {
-	return rules[id] ?? {};
+export function getHeroRule(skelName: string): HeroRule {
+	return rules[skelName] ?? {};
 }

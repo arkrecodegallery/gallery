@@ -2,17 +2,10 @@ import { it } from "vitest";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import {
-	SkeletonBinary,
-	RegionAttachment,
-	MeshAttachment,
-	BoundingBoxAttachment,
-	PathAttachment,
-	PointAttachment,
-	ClippingAttachment,
-} from "@esotericsoftware/spine-core";
 import { Animate } from "../src/lib/core/animate";
 import { getBondRule } from "../src/lib/core/bondRules";
+import { skelName } from "../src/lib/core/skelName";
+import { parseSkeletonBinary } from "../src/lib/core/skeletonParser";
 import { loadDotEnv } from "./loadDotEnv";
 
 /**
@@ -31,8 +24,9 @@ import { loadDotEnv } from "./loadDotEnv";
  * $TEST_GALLERY_DIR/containers - usually a bond id (A0145) or hero id
  * (H003), but any path fragment works.
  *
- * Optional HERO_ID=<id> applies that hero's bondRules.ts override (skip/
- * rename/disable) before grouping, same as the app would.
+ * bondRules.ts is keyed by skel name, so the matched file's own basename
+ * (e.g. "A0145") is used to look up its override (skip/rename/disable)
+ * before grouping, exactly as the app would - no extra id needs passing.
  *
  * TEST_GALLERY_DIR is read from .env at repo root (see .env.example).
  */
@@ -57,37 +51,17 @@ function findSkelFiles(containersDir: string, query: string): string[] {
 }
 
 function parseSkeleton(skelPath: string) {
-	const stubLoader: any = {
-		newRegionAttachment: (_skin: any, name: string, imgPath: string) => {
-			const region = new RegionAttachment(name, imgPath);
-			region.region = { u: 0, v: 0, u2: 1, v2: 1 } as any;
-			return region;
-		},
-		newMeshAttachment: (_skin: any, name: string, imgPath: string) => {
-			const mesh = new MeshAttachment(name, imgPath);
-			mesh.region = { u: 0, v: 0, u2: 1, v2: 1 } as any;
-			return mesh;
-		},
-		newBoundingBoxAttachment: (_skin: any, name: string) =>
-			new BoundingBoxAttachment(name),
-		newPathAttachment: (_skin: any, name: string) => new PathAttachment(name),
-		newPointAttachment: (_skin: any, name: string) => new PointAttachment(name),
-		newClippingAttachment: (_skin: any, name: string) =>
-			new ClippingAttachment(name),
-	};
-
-	const binary = new SkeletonBinary(stubLoader);
 	const bytes = fs.readFileSync(skelPath);
-	return binary.readSkeletonData(new Uint8Array(bytes));
+	return parseSkeletonBinary(new Uint8Array(bytes));
 }
 
-function printReport(skelPath: string, heroId?: string) {
+function printReport(skelPath: string) {
 	console.log(`\n=== ${skelPath} ===`);
 
 	const skeletonData = parseSkeleton(skelPath);
 	skeletonData.animations.forEach((a, i) => console.log(`  [${i}] ${a.name}`));
 
-	const rule = heroId ? getBondRule(heroId) : undefined;
+	const rule = getBondRule(skelName(skelPath));
 	const animate = new Animate(skeletonData.animations, rule);
 
 	console.log("\n  -- Animate grouping (bond stages) --");
@@ -111,7 +85,7 @@ it("extracts and groups a real skeleton's animations for manual inspection", () 
 	const query = process.env.SKEL_ID;
 	if (!query) {
 		console.log(
-			"Usage: SKEL_ID=<id or path fragment> [HERO_ID=<id>] npx vitest run scripts/extract-skel-animations.test.ts"
+			"Usage: SKEL_ID=<id or path fragment> npx vitest run scripts/extract-skel-animations.test.ts"
 		);
 		return;
 	}
@@ -130,6 +104,6 @@ it("extracts and groups a real skeleton's animations for manual inspection", () 
 	}
 
 	for (const skelPath of matches) {
-		printReport(skelPath, process.env.HERO_ID);
+		printReport(skelPath);
 	}
 });

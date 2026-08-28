@@ -29,14 +29,14 @@ export class BondViewState {
 		}
 	}
 
-	stageMap(heroId: string): Map<string, number> | undefined {
+	stageMap(skelName: string): Map<string, number> | undefined {
 		if (!store.skeletonData) {
 			return undefined;
 		}
 
 		if (store.view === "hero" || store.view === "alt") {
 			return this.namesToMap(
-				getEligibleAnimationNames(store.skeletonData.animations, heroId)
+				getEligibleAnimationNames(store.skeletonData.animations, skelName)
 			);
 		}
 
@@ -50,7 +50,7 @@ export class BondViewState {
 			return undefined;
 		}
 
-		const rule = getBondRule(heroId);
+		const rule = getBondRule(skelName);
 		if (rule.disable) {
 			return undefined;
 		}
@@ -64,9 +64,9 @@ export class BondViewState {
 
 	currentCheckboxAnimation(
 		animationState: AnimationState,
-		heroId: string
+		skelName: string
 	): string | undefined {
-		const rule = getBondRule(heroId);
+		const rule = getBondRule(skelName);
 		if (rule.disable || this.sequencer.manualOverride) {
 			return undefined;
 		}

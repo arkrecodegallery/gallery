@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { Animation } from "@esotericsoftware/spine-core";
 import { Animate } from "$lib/core/animate";
-import { BondSequencer } from "$lib/core/bondSequencer";
+import { BondSequencer, CHAIN_ANIMATION_VARIANTS } from "$lib/core/bondSequencer";
 
 function anims(names: string[]): Animation[] {
 	return names.map((name) => ({ name }) as Animation);
@@ -111,7 +111,7 @@ describe("BondSequencer", () => {
 		expect(sequencer.sequence).toEqual([]);
 	});
 
-	it("a stop with numbered variants picks a single alternate, rotating on each visit (CHAIN_ANIMATION_VARIANTS is off)", () => {
+	it("a stop with numbered variants resolves per CHAIN_ANIMATION_VARIANTS: all alternates chained when on, one rotating alternate per visit when off", () => {
 		const animate = new Animate(
 			anims(["00_idle", "20_loop_1", "20_loop_2", "20_loop_3"])
 		);
@@ -119,6 +119,18 @@ describe("BondSequencer", () => {
 
 		sequencer.enterStage(animate, 0);
 		sequencer.advance(animate);
+
+		if (CHAIN_ANIMATION_VARIANTS) {
+			expect(describeSequence(sequencer)).toBe(
+				"20_loop_1 -> 20_loop_2 -> 20_loop_3"
+			);
+			expect(sequencer.loopChain).toEqual([
+				"20_loop_1",
+				"20_loop_2",
+				"20_loop_3",
+			]);
+			return;
+		}
 
 		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
 		expect(sequencer.loopChain).toEqual([]);
@@ -239,10 +251,13 @@ describe("BondSequencer", () => {
 		expect(sequencer.loopChain).toEqual([]);
 
 		// re-entering stage 1 picks the same alternate again - reset() clears
-		// the per-visit rotation memory
+		// the per-visit rotation memory (moot when CHAIN_ANIMATION_VARIANTS is
+		// on, since every alternate always plays together regardless)
 		sequencer.enterStage(animate, 0);
 		sequencer.advance(animate);
-		expect(describeSequence(sequencer)).toBe("20_loop_1 STOP");
+		expect(describeSequence(sequencer)).toBe(
+			CHAIN_ANIMATION_VARIANTS ? "20_loop_1 -> 20_loop_2" : "20_loop_1 STOP"
+		);
 	});
 
 	it("cycle-alternate memory for bypass footage is cleared by reset()", () => {

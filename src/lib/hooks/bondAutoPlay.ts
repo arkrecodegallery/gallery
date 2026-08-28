@@ -15,15 +15,15 @@ export class BondAutoPlay {
 	handleAnimationComplete(
 		entry: TrackEntry,
 		animationState: AnimationState,
-		heroId: string
+		skelName: string
 	) {
-		if (this.tryAdvance(entry, heroId)) {
+		if (this.tryAdvance(entry, skelName)) {
 			return;
 		}
 		this.handleLoopComplete(entry, animationState);
 	}
 
-	private tryAdvance(entry: TrackEntry, heroId: string): boolean {
+	private tryAdvance(entry: TrackEntry, skelName: string): boolean {
 		if (
 			store.view !== "bond" ||
 			!this.state.autoPlay ||
@@ -34,7 +34,7 @@ export class BondAutoPlay {
 			return false;
 		}
 
-		const rule = getBondRule(heroId);
+		const rule = getBondRule(skelName);
 		if (rule.disable) {
 			this.state.autoPlay = false;
 			return false;
@@ -46,7 +46,7 @@ export class BondAutoPlay {
 			return false;
 		}
 
-		if (!this.actions.advanceStage(heroId)) {
+		if (!this.actions.advanceStage(skelName)) {
 			return false;
 		}
 		this.requestUpdate();

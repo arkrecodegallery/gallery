@@ -6,6 +6,8 @@ export interface Platform {
 	loadMap(): Promise<GalleryMap>;
 	toggleFullscreen(): Promise<void>;
 	setup?: SetupPlatform;
+	/** Dev-only: parses every skel in the gallery and writes animations.json. Resolves to a status message. */
+	exportAnimationSheet?(): Promise<string>;
 }
 
 export interface SetupPlatform {

@@ -13,26 +13,61 @@
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
 	const stageMap = $derived(store.modelState.animationStageMap());
-	const skinDisabled = $derived(store.view !== "hero" && store.view !== "alt");
+	const skinDisabled = $derived(
+		store.view !== "hero" && store.view !== "alt",
+	);
 	const animationDisabled = $derived(store.view === "collection");
 	const stillsPresentation = $derived.by(() => {
 		const presentation = store.modelState.getBondPresentation();
 		return presentation?.kind === "stills" ? presentation : undefined;
 	});
 
+	// stageMap has no entry for skipped animations (e.g. touch/emo), which
+	// splits one visual group in two; bridge gaps enclosed by the same
+	// stage on both sides so the group reads as continuous around them
+	const displayStages = $derived.by(() => {
+		if (!stageMap) return undefined;
+		const stages = animations.map((a) => stageMap.get(a.name));
+		const filled = [...stages];
+
+		let i = 0;
+		while (i < filled.length) {
+			if (filled[i] !== undefined) {
+				i++;
+				continue;
+			}
+			let j = i;
+			while (j < filled.length && filled[j] === undefined) j++;
+
+			const before = i > 0 ? filled[i - 1] : undefined;
+			const after = j < filled.length ? stages[j] : undefined;
+			if (before !== undefined && before === after) {
+				filled.fill(before, i, j);
+			}
+			i = j;
+		}
+
+		return filled;
+	});
+
 	function stageBarClass(index: number): string | undefined {
-		const stage = stageMap?.get(animations[index].name);
+		const stage = displayStages?.[index];
 		if (stage === undefined) return undefined;
 
-		const prevStage = stageMap?.get(animations[index - 1]?.name);
-		const nextStage = stageMap?.get(animations[index + 1]?.name);
-		const isFirst = stage !== prevStage;
-		const isLast = stage !== nextStage;
+		const isFirst = stage !== displayStages?.[index - 1];
+		const isLast = stage !== displayStages?.[index + 1];
 
 		return cn(
 			"pointer-events-none absolute left-1 w-5.5 bg-foreground/20",
 			isFirst ? "top-1 rounded-t-full" : "top-0 rounded-t-none",
 			isLast ? "bottom-1 rounded-b-full" : "bottom-0 rounded-b-none",
+		);
+	}
+
+	function isBridgedGap(index: number): boolean {
+		return (
+			displayStages?.[index] !== undefined &&
+			stageMap?.get(animations[index].name) === undefined
 		);
 	}
 
@@ -109,6 +144,7 @@
 				{:else}
 					{#each animations as anim, i}
 						{@const bar = stageBarClass(i)}
+						{@const gap = isBridgedGap(i)}
 						<DropdownMenu.CheckboxItem
 							checked={anim.name in store.modelState.animations}
 							onCheckedChange={(checked) =>
@@ -120,7 +156,12 @@
 							closeOnSelect={false}
 						>
 							{#if bar}
-								<span class={bar}></span>
+								<span
+									class={bar}
+									style={gap
+										? "mask-image: radial-gradient(130% 90% at center, transparent 14px, black 7px); -webkit-mask-image: radial-gradient(130% 90% at center, transparent 14px, black 7px);"
+										: undefined}
+								></span>
 							{/if}
 							{anim.name}
 						</DropdownMenu.CheckboxItem>
@@ -164,7 +205,8 @@
 			<Kbd.Group>
 				<Key
 					key={keybinds.Cutscene}
-					disabled={store.view === "collection" || !!stillsPresentation}
+					disabled={store.view === "collection" ||
+						!!stillsPresentation}
 				/>
 				<Key
 					key={keybinds.Touch}

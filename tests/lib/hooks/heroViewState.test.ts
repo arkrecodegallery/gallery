@@ -137,12 +137,12 @@ describe("HeroViewState", () => {
 		expect(state.selectedIndex).toBe(0);
 	});
 
-	it("resets selection when the hero id changes on the same skeleton reference", () => {
+	it("resets selection when the skel name changes on the same skeleton reference", () => {
 		const skeleton = fakeSkeleton(["00_Idle", "04_Touch"]);
 		const state = new HeroViewState();
 
 		state.cycleSelection(skeleton, "H001");
-		state.cycleSelection(skeleton, "H002");
+		state.cycleSelection(skeleton, "H001b");
 
 		expect(state.selectedIndex).toBe(0);
 	});

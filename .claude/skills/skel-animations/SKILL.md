@@ -26,8 +26,9 @@ machine that runs the Tauri app) rather than guessing.
 SKEL_ID=<hero or bond id, or any path fragment> npx vitest run --config scripts/vitest.scripts.config.ts
 ```
 
-Optionally add `HERO_ID=<id>` to also apply that hero's `bondRules.ts`
-override (skip/rename/disable) before grouping, exactly as the app would.
+`bondRules.ts` is keyed by skel name, so each matched file's own basename
+(e.g. `A0145`) is used automatically to look up its override (skip/rename/
+disable) before grouping, exactly as the app would.
 
 `SKEL_ID` is matched case-insensitively as a substring against `.skel`
 paths under `$TEST_GALLERY_DIR/containers`, so a bond id (`A0145`) or hero

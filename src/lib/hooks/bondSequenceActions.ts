@@ -12,12 +12,12 @@ import type {
 export class BondSequenceActions {
 	constructor(private state: BondViewState) {}
 
-	advanceStage(heroId: string): boolean {
+	advanceStage(skelName: string): boolean {
 		if (!store.skeletonData) {
 			return false;
 		}
 
-		const rule = getBondRule(heroId);
+		const rule = getBondRule(skelName);
 		if (rule.disable) {
 			return false;
 		}
@@ -30,12 +30,12 @@ export class BondSequenceActions {
 		return true;
 	}
 
-	startAutoPlay(heroId: string): boolean {
+	startAutoPlay(skelName: string): boolean {
 		if (!store.skeletonData) {
 			return false;
 		}
 
-		const rule = getBondRule(heroId);
+		const rule = getBondRule(skelName);
 		if (rule.disable) {
 			return false;
 		}
@@ -58,12 +58,12 @@ export class BondSequenceActions {
 		this.state.stillsIndex = index;
 	}
 
-	takeManualControl(heroId: string, name: string) {
+	takeManualControl(skelName: string, name: string) {
 		if (!store.skeletonData) {
 			return;
 		}
 
-		const rule = getBondRule(heroId);
+		const rule = getBondRule(skelName);
 		if (rule.disable) {
 			return;
 		}
@@ -74,12 +74,12 @@ export class BondSequenceActions {
 		this.state.syncMeta(animate);
 	}
 
-	handleCheckboxSelect(heroId: string, name: string, checked: boolean) {
+	handleCheckboxSelect(skelName: string, name: string, checked: boolean) {
 		this.state.sequencer.manualOverride = true;
 		this.state.autoPlay = false;
 
 		if (checked) {
-			this.takeManualControl(heroId, name);
+			this.takeManualControl(skelName, name);
 		}
 	}
 
@@ -87,10 +87,10 @@ export class BondSequenceActions {
 		skeletonData: SkeletonData,
 		animationState: AnimationState,
 		skeleton: Skeleton,
-		heroId: string,
+		skelName: string,
 		manualAnimations: () => Animation[]
 	): Animation[] {
-		const rule = getBondRule(heroId);
+		const rule = getBondRule(skelName);
 		const isNewSkeleton = this.state.lastSkeletonData !== skeletonData;
 		if (isNewSkeleton) {
 			this.state.lastSkeletonData = skeletonData;

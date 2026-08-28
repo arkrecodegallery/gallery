@@ -6,8 +6,7 @@ export interface BondSequenceStep {
 	loop: boolean;
 }
 
-/** Off for now - stop variants pick one alternate instead of chaining. */
-export const CHAIN_ANIMATION_VARIANTS = false;
+export const CHAIN_ANIMATION_VARIANTS = true;
 
 export class BondSequencer {
 	stageIndex = 0;

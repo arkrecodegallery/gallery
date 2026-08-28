@@ -232,6 +232,76 @@ describe("Animate.groupAnimations", () => {
 				[["20_loop"]],
 			]);
 		});
+
+		it("rule.overrides 'stop' forces a new group to flush even for a name the parser would bypass", () => {
+			const animate = new Animate(
+				anims(["00_idle", "weird_manhand_clip", "20_loop"]),
+				{ overrides: { weird_manhand_clip: "stop" } }
+			);
+			expect(groupNames(animate)).toEqual([
+				[["00_idle"]],
+				[["weird_manhand_clip"]],
+				[["20_loop"]],
+			]);
+		});
+
+		it("rule.overrides 'transition' forces bypass even for a name the parser would treat as a stop", () => {
+			const animate = new Animate(
+				anims(["00_idle", "05_loop_weird", "20_loop"]),
+				{ overrides: { "05_loop_weird": "transition" } }
+			);
+			expect(groupNames(animate)).toEqual([
+				[["00_idle"], ["05_loop_weird"]],
+				[["20_loop"]],
+			]);
+		});
+
+		it("rule.overrides 'transition' can be dropped outright when it lands right after another transition-flagged clip", () => {
+			const animate = new Animate(
+				anims(["00_idle", "05_idle_to_ani", "10_end_ani", "20_end_ani"]),
+				{ overrides: { "10_end_ani": "transition" } }
+			);
+			// 05_idle_to_ani is already a natural transition (contains "_to_"),
+			// so the consecutive-transition collapse eats 10_end_ani entirely
+			expect(groupNames(animate)).toEqual([
+				[["00_idle"], ["05_idle_to_ani"]],
+				[["20_end_ani"]],
+			]);
+		});
+
+		it("rule.overrides 'bypass' survives next to a natural transition where 'transition' would get dropped", () => {
+			const animate = new Animate(
+				anims(["00_idle", "05_idle_to_ani", "10_end_ani", "20_end_ani"]),
+				{ overrides: { "10_end_ani": "bypass" } }
+			);
+			expect(groupNames(animate)).toEqual([
+				[["00_idle"], ["05_idle_to_ani"], ["10_end_ani"]],
+				[["20_end_ani"]],
+			]);
+		});
+
+		it("rule.overrides 'variant' cycles a differently-named clip as an alternate on the current stop, instead of bypassing as its own entry", () => {
+			const animate = new Animate(
+				anims(["00_idle", "20_loop_ani1", "weird_alt_clip"]),
+				{ overrides: { weird_alt_clip: "variant" } }
+			);
+			expect(groupNames(animate)).toEqual([
+				[["00_idle"]],
+				[["20_loop_ani1", "weird_alt_clip"]],
+			]);
+		});
+
+		it("rule.reorderBefore moves a stop earlier in playback order, unlike rename/overrides which only affect classification in place", () => {
+			const animate = new Animate(
+				anims(["00_idle", "20_loop", "21_transition", "22_loop"]),
+				{ reorderBefore: { "22_loop": "21_transition" } }
+			);
+			expect(groupNames(animate)).toEqual([
+				[["00_idle"]],
+				[["20_loop"]],
+				[["22_loop"], ["21_transition"]],
+			]);
+		});
 	});
 
 	describe("real-world regression cases", () => {
@@ -313,6 +383,44 @@ describe("Animate.groupAnimations", () => {
 			]);
 		});
 
+		it("A0029-style: bondRules.overrides 'bypass' keeps 40_End_ani as bypass footage instead of getting dropped by the adjacent natural transition into it", () => {
+			// exact animation order pulled from the real A0029.skel via
+			// scripts/extract-skel-animations.test.ts (see skel-animations skill)
+			const animate = new Animate(
+				anims([
+					"00_Idle_ani",
+					"01_Loop_ani",
+					"05_Loop_ani",
+					"10_Loop_ani",
+					"11_Loop_ani",
+					"20_Loop_ani",
+					"21_Loop_ani",
+					"30_Finish_ani",
+					"31_Idle_ani",
+					"32_Idle to End_ani",
+					"40_End_ani",
+					"41_End_ani",
+					"90_BG",
+				]),
+				getBondRule("A0029")
+			);
+			expect(groupNames(animate)).toEqual([
+				[["00_Idle_ani"]],
+				[["01_Loop_ani"], ["05_Loop_ani"]],
+				[["10_Loop_ani"]],
+				[["11_Loop_ani"]],
+				[["20_Loop_ani"]],
+				[["21_Loop_ani"], ["30_Finish_ani"]],
+				[
+					["31_Idle_ani"],
+					["32_Idle to End_ani"],
+					["40_End_ani"],
+				],
+				[["41_End_ani"]],
+			]);
+			expect(bgNames(animate)).toEqual(["90_BG"]);
+		});
+
 		it("H115/A0145-style: bondRules.rename keeps 01_Idle_hand_ani as its own stop and cycles 40_End_ani/41_End_ani as alternates", () => {
 			// exact animation order pulled from the real A0145.skel via
 			// scripts/extract-skel-animations.test.ts (see skel-animations skill)
@@ -333,7 +441,7 @@ describe("Animate.groupAnimations", () => {
 					"40_End_ani",
 					"41_End_ani",
 				]),
-				getBondRule("H115")
+				getBondRule("A0145")
 			);
 			expect(groupNames(animate)).toEqual([
 				[["00_Idle_ani"]],

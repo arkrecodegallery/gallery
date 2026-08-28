@@ -1,5 +1,5 @@
 import type { Animation } from "@esotericsoftware/spine-core";
-import type { BondRule } from "./bondRules";
+import type { BondRule, BondRuleOverride } from "./bondRules";
 import { getAnimationPrefix } from "./animationName";
 
 type AnimationMode = "idle" | "loop" | "finish" | "end" | "bg" | "skip";
@@ -13,10 +13,34 @@ interface AnimationName {
 
 	mode: AnimationMode;
 	transition: boolean;
+	variant: boolean;
 }
 
 interface AnimationEntry {
 	animations: Animation[];
+}
+
+/** Moves each key immediately before its value; classification never reorders, only this does. */
+function reorderAnimations(
+	animations: Animation[],
+	reorderBefore?: Record<string, string>
+): Animation[] {
+	if (!reorderBefore) {
+		return animations;
+	}
+
+	const result = [...animations];
+	for (const [name, before] of Object.entries(reorderBefore)) {
+		const fromIndex = result.findIndex((a) => a.name === name);
+		if (fromIndex === -1) {
+			continue;
+		}
+
+		const [moved] = result.splice(fromIndex, 1);
+		const toIndex = result.findIndex((a) => a.name === before);
+		result.splice(toIndex === -1 ? result.length : toIndex, 0, moved);
+	}
+	return result;
 }
 
 export class Animate {
@@ -28,13 +52,18 @@ export class Animate {
 	readonly transitions = ["in", "out", "to", "off"];
 
 	constructor(animations: Animation[], rule?: BondRule) {
+		const reordered = reorderAnimations(animations, rule?.reorderBefore);
 		const filtered = rule?.skip?.length
-			? animations.filter((a) => !rule.skip!.includes(a.name))
-			: animations;
-		this.groupAnimations(filtered, rule?.rename);
+			? reordered.filter((a) => !rule.skip!.includes(a.name))
+			: reordered;
+		this.groupAnimations(filtered, rule?.rename, rule?.overrides);
 	}
 
-	groupAnimations(animations: Animation[], rename?: Record<string, string>) {
+	groupAnimations(
+		animations: Animation[],
+		rename?: Record<string, string>,
+		overrides?: Record<string, BondRuleOverride>
+	) {
 		this.groups = [];
 		this.background = [];
 		let currentGroup: AnimationEntry[] = [];
@@ -55,6 +84,22 @@ export class Animate {
 			const animation = animations[index];
 			const alias = rename?.[animation.name] ?? animation.name;
 			const name = this.parseName(alias);
+
+			// override wins over whatever the naming convention parsed
+			const override = overrides?.[animation.name];
+			if (override === "stop") {
+				// same as "loop": always flushes a new group
+				name.mode = "loop";
+				name.transition = false;
+			} else if (override === "transition") {
+				name.transition = true;
+			} else if (override === "variant") {
+				name.variant = true;
+			} else if (override === "bypass") {
+				name.mode = "finish";
+				name.transition = false;
+			}
+
 			return { animation: { animations: [animation] }, name };
 		};
 
@@ -89,6 +134,15 @@ export class Animate {
 			} else if (name.stage >= 8) {
 				// skip background and misc effects
 				continue;
+			}
+
+			// forced variant, regardless of naming-based continuation
+			else if (name.variant) {
+				if (currentGroup.length > 0) {
+					addCycle(curr);
+				} else {
+					currentGroup.push(curr);
+				}
 			}
 
 			// transition
@@ -202,6 +256,7 @@ export class Animate {
 
 			mode,
 			transition,
+			variant: false,
 		};
 	}
 

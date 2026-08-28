@@ -20,25 +20,25 @@ export class HeroViewState {
 	private activeClipLoop = false;
 	private activeTrackIndex = 0;
 	private lastSkeletonData?: SkeletonData;
-	private lastHeroId?: string;
+	private lastSkelName?: string;
 
-	private syncEligibility(skeletonData: SkeletonData, heroId: string) {
-		if (this.lastSkeletonData === skeletonData && this.lastHeroId === heroId) {
+	private syncEligibility(skeletonData: SkeletonData, skelName: string) {
+		if (this.lastSkeletonData === skeletonData && this.lastSkelName === skelName) {
 			return;
 		}
 
 		this.lastSkeletonData = skeletonData;
-		this.lastHeroId = heroId;
+		this.lastSkelName = skelName;
 		this.idleName = findIdleAnimationName(skeletonData.animations);
-		this.eligibleNames = getEligibleAnimationNames(skeletonData.animations, heroId);
+		this.eligibleNames = getEligibleAnimationNames(skeletonData.animations, skelName);
 		this.selectedIndex = 0;
 		this.playingIndex = -1;
 		this.activeClipName = undefined;
 		this.activeClipLoop = false;
 	}
 
-	cycleSelection(skeletonData: SkeletonData, heroId: string) {
-		this.syncEligibility(skeletonData, heroId);
+	cycleSelection(skeletonData: SkeletonData, skelName: string) {
+		this.syncEligibility(skeletonData, skelName);
 		if (this.eligibleNames.length === 0) {
 			return;
 		}
@@ -46,8 +46,8 @@ export class HeroViewState {
 		this.selectedIndex = (this.selectedIndex + 1) % this.eligibleNames.length;
 	}
 
-	playSelected(skeletonData: SkeletonData, heroId: string): boolean {
-		this.syncEligibility(skeletonData, heroId);
+	playSelected(skeletonData: SkeletonData, skelName: string): boolean {
+		this.syncEligibility(skeletonData, skelName);
 		const name = this.eligibleNames[this.selectedIndex];
 		if (!name || this.activeClipName) {
 			return false;
@@ -60,8 +60,8 @@ export class HeroViewState {
 	}
 
 	// checkbox-driven: any animation, always loops, switches freely
-	setChecked(skeletonData: SkeletonData, name: string, checked: boolean, heroId: string) {
-		this.syncEligibility(skeletonData, heroId);
+	setChecked(skeletonData: SkeletonData, name: string, checked: boolean, skelName: string) {
+		this.syncEligibility(skeletonData, skelName);
 
 		if (!checked) {
 			if (this.activeClipName === name) {
@@ -88,9 +88,9 @@ export class HeroViewState {
 	getAnimation(
 		skeletonData: SkeletonData,
 		animationState: AnimationState,
-		heroId: string
+		skelName: string
 	): Animation[] {
-		this.syncEligibility(skeletonData, heroId);
+		this.syncEligibility(skeletonData, skelName);
 
 		const animations: Animation[] = [];
 		if (this.idleName) {

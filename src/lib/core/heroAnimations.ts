@@ -5,10 +5,10 @@ import { getHeroRule } from "./heroRules";
 
 export function getEligibleAnimationNames(
 	animations: Animation[],
-	heroId: string
+	skelName: string
 ): string[] {
 	const idleName = findIdleAnimationName(animations);
-	const skip = new Set(getHeroRule(heroId).skip ?? []);
+	const skip = new Set(getHeroRule(skelName).skip ?? []);
 	return animations
 		.filter((a) => a.name !== idleName && getAnimationPrefix(a.name) < 90 && !skip.has(a.name))
 		.map((a) => a.name);

@@ -6,6 +6,10 @@ import type {
 	Entry,
 	ModelView,
 } from "../core/types";
+import {
+	applyCheckboxSelection,
+	reconcileSingleCheckbox,
+} from "$lib/core/checkboxSelection";
 import type {
 	AnimationState,
 	Skeleton,
@@ -180,24 +184,7 @@ export class ModelState {
 			this.skillView.setChecked(name, checked);
 		}
 
-		if (!additive) {
-			this.animations = checked ? { [name]: 0 } : {};
-			this.animationUpdate = true;
-			this.skinUpdate = true;
-			return;
-		}
-
-		const next = { ...this.animations };
-		if (checked) {
-			next[name] = Object.keys(next).length;
-		} else {
-			delete next[name];
-			Object.keys(next).forEach((key, i) => {
-				next[key] = i;
-			});
-		}
-
-		this.animations = next;
+		this.animations = applyCheckboxSelection(this.animations, name, checked, additive);
 		this.animationUpdate = true;
 		this.skinUpdate = true;
 	}
@@ -230,14 +217,7 @@ export class ModelState {
 		}
 
 		const current = this.bond.currentCheckboxAnimation(animationState);
-		if (current === undefined) {
-			return;
-		}
-
-		const keys = Object.keys(this.animations);
-		if (keys.length !== 1 || keys[0] !== current) {
-			this.animations = { [current]: 0 };
-		}
+		this.animations = reconcileSingleCheckbox(this.animations, current, false);
 	}
 
 	public syncHeroCheckboxState() {
@@ -246,14 +226,7 @@ export class ModelState {
 		}
 
 		const current = this.heroAnimation.currentClipName();
-		const keys = Object.keys(this.animations);
-		if (current === undefined) {
-			if (keys.length !== 0) {
-				this.animations = {};
-			}
-		} else if (keys.length !== 1 || keys[0] !== current) {
-			this.animations = { [current]: 0 };
-		}
+		this.animations = reconcileSingleCheckbox(this.animations, current, true);
 	}
 
 	public syncSkillCheckboxState(animationState: AnimationState) {
@@ -265,14 +238,7 @@ export class ModelState {
 			animationState,
 			store.skeletonData
 		);
-		const keys = Object.keys(this.animations);
-		if (current === undefined) {
-			if (keys.length !== 0) {
-				this.animations = {};
-			}
-		} else if (keys.length !== 1 || keys[0] !== current) {
-			this.animations = { [current]: 0 };
-		}
+		this.animations = reconcileSingleCheckbox(this.animations, current, true);
 	}
 
 	public updateBondPlaybackProgress(animationState: AnimationState) {

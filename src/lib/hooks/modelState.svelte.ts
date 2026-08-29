@@ -8,37 +8,18 @@ import type {
 } from "../core/types";
 import type {
 	AnimationState,
-	AnimationStateListener,
 	Skeleton,
 	SkeletonData,
 	TrackEntry,
 } from "@esotericsoftware/spine-core";
-import { keybinds } from "$lib/core/keybinds.svelte";
-import { addKeydownListener } from "$lib/utils";
+import { keybinds, addKeydownListener } from "$lib/core/keybinds.svelte";
 import { BondViewState } from "./bondViewState.svelte";
 import { BondSequenceActions } from "./bondSequenceActions";
 import { BondAutoPlay } from "./bondAutoPlay";
 import { HeroViewState } from "./heroViewState.svelte";
+import { SkillViewState } from "./skillViewState.svelte";
+import { SkinState } from "./skinState.svelte";
 import { skelName } from "$lib/core/skelName";
-import {
-	POSSIBLE_IDLE_NAMES,
-	findIdleAnimationName,
-} from "$lib/core/idleAnimation";
-import { computeBarProgress } from "$lib/core/bondProgress";
-import { TOUCH_NAMES, CUTSCENE_NAMES } from "$lib/core/skillAnimations";
-
-const POSSIBLE_BG_NAMES = [
-	"90_BG",
-	"90_BG2",
-	"90_BG3",
-	"90_BG_Loop",
-	"90_Sparkle",
-	"90_BG_02",
-];
-
-// dedicated track for checkbox-driven skill loops; kept well clear of
-// the dynamic idle/bg/touch/cutscene track indices below
-const SKILL_CHECKBOX_TRACK = 50;
 
 function fromLocalStorage(item: string): number {
 	const value = localStorage.getItem(item);
@@ -49,24 +30,16 @@ export class ModelState {
 	absoluteHeroIndex: number = $state(fromLocalStorage("absoluteHeroIndex"));
 	relativeHeroIndex: number = $state(fromLocalStorage("relativeHeroIndex"));
 
-	skin: string = $state("LV1");
-	skinLevel: number = 1;
 	skinUpdate: boolean = false;
-	skipSkinCalculation: boolean = false;
 
-	touch: boolean = false;
-	cutScene: boolean = false;
 	animations: Record<string, number> = $state({});
 	animationUpdate: boolean = false;
 
 	cycleIndex: number = $state(0);
 	modelUpdate: boolean = false;
 
-	skillActiveTrackIndex = 0;
-	skillActiveAnimationName?: string;
-	skillBarProgress: number = $state(0);
-	private lastSkillSkeletonData?: SkeletonData;
-
+	public readonly skinState = new SkinState();
+	public readonly skillView = new SkillViewState();
 	public readonly bond = new BondViewState();
 	public readonly heroAnimation = new HeroViewState();
 	private bondActions = new BondSequenceActions(this.bond);
@@ -86,15 +59,13 @@ export class ModelState {
 	handleSkinChange(key: string) {
 		if (store.view !== "hero" && store.view !== "alt") return;
 
-		const cur = this.skinLevel;
-
 		switch (key) {
 			case keybinds.Skin_Decrement:
-				this.skinLevel = cur === 1 ? 3 : cur - 1;
+				this.skinState.decrement();
 				this.skinUpdate = true;
 				break;
 			case keybinds.Skin_Increment:
-				this.skinLevel = cur === 3 ? 1 : cur + 1;
+				this.skinState.increment();
 				this.skinUpdate = true;
 				break;
 		}
@@ -111,30 +82,16 @@ export class ModelState {
 	}
 
 	public calculateSkin() {
-		if (this.skipSkinCalculation) {
-			this.skipSkinCalculation = false;
-			return;
-		}
-
-		const tryApplySkin = (attempt: string, fallback: string) => {
-			if (store.skeletonData?.skins.some((a) => a.name === attempt)) {
-				this.skin = attempt;
-			} else {
-				this.skin = store.skeletonData?.skins[0].name ?? fallback;
-			}
-		};
-
-		if (store.view === "hero") {
-			this.skin = `LV${this.skinLevel}`;
-		} else if (store.view === "alt") {
-			tryApplySkin(`LV${this.skinLevel}`, "default");
-		} else if (store.view === "skill" || store.view === "bond") {
-			tryApplySkin("LV1", "default");
-		}
+		this.skinState.calculateSkin(store.view, store.skeletonData);
 	}
 
 	public getSkin(skeletonData: SkeletonData): string {
-		return this.skin;
+		return this.skinState.getSkin();
+	}
+
+	public confirmManualSkinPick() {
+		this.skinState.confirmManualPick();
+		this.skinUpdate = true;
 	}
 
 	handleAnimationChange(key: string) {
@@ -145,7 +102,7 @@ export class ModelState {
 				if (heroFamily && store.skeletonData) {
 					this.heroAnimation.cycleSelection(store.skeletonData, this.resolveSkelName()!);
 				} else if (store.view === "skill") {
-					this.cutScene = true;
+					this.skillView.requestCutscene();
 					this.animationUpdate = true;
 				} else if (store.view === "bond") {
 					const entry = this.getAbsoluteEntry();
@@ -163,7 +120,7 @@ export class ModelState {
 						this.animationUpdate = true;
 					}
 				} else if (store.view === "skill") {
-					this.touch = true;
+					this.skillView.requestTouch();
 					this.animationUpdate = true;
 				} else if (store.view === "bond") {
 					const entry = this.getAbsoluteEntry();
@@ -185,7 +142,11 @@ export class ModelState {
 	}
 
 	public animationStageMap(): Map<string, number> | undefined {
-		return this.bond.stageMap(this.resolveSkelName()!);
+		return this.bond.stageMap(
+			store.skeletonData,
+			store.view,
+			this.resolveSkelName()!
+		);
 	}
 
 	public getBondPresentation(): BondPresentation | undefined {
@@ -199,7 +160,12 @@ export class ModelState {
 
 	public setAnimationChecked(name: string, checked: boolean, additive = false) {
 		if (store.view === "bond") {
-			this.bondActions.handleCheckboxSelect(this.resolveSkelName()!, name, checked);
+			this.bondActions.handleCheckboxSelect(
+				store.skeletonData,
+				this.resolveSkelName()!,
+				name,
+				checked
+			);
 		} else if (
 			(store.view === "hero" || store.view === "alt") &&
 			store.skeletonData
@@ -211,7 +177,7 @@ export class ModelState {
 				this.resolveSkelName()!
 			);
 		} else if (store.view === "skill") {
-			this.setSkillChecked(name, checked);
+			this.skillView.setChecked(name, checked);
 		}
 
 		if (!additive) {
@@ -237,14 +203,14 @@ export class ModelState {
 	}
 
 	public advanceBondStage() {
-		if (this.bondActions.advanceStage(this.resolveSkelName()!)) {
+		if (this.bondActions.advanceStage(store.skeletonData, this.resolveSkelName()!)) {
 			this.animationUpdate = true;
 			this.skinUpdate = true;
 		}
 	}
 
 	public startBondAutoPlay() {
-		if (this.bondActions.startAutoPlay(this.resolveSkelName()!)) {
+		if (this.bondActions.startAutoPlay(store.skeletonData, this.resolveSkelName()!)) {
 			this.animationUpdate = true;
 			this.skinUpdate = true;
 		}
@@ -263,10 +229,7 @@ export class ModelState {
 			return;
 		}
 
-		const current = this.bond.currentCheckboxAnimation(
-			animationState,
-			this.resolveSkelName()!
-		);
+		const current = this.bond.currentCheckboxAnimation(animationState);
 		if (current === undefined) {
 			return;
 		}
@@ -298,16 +261,10 @@ export class ModelState {
 			return;
 		}
 
-		// reflect the q/e one-shot clip while it's actually playing
-		const oneShot =
-			this.skillActiveTrackIndex !== 0
-				? animationState.getCurrent(this.skillActiveTrackIndex)?.animation?.name
-				: undefined;
-
-		const current =
-			oneShot ??
-			this.skillActiveAnimationName ??
-			findIdleAnimationName(store.skeletonData.animations);
+		const current = this.skillView.currentCheckboxAnimation(
+			animationState,
+			store.skeletonData
+		);
 		const keys = Object.keys(this.animations);
 		if (current === undefined) {
 			if (keys.length !== 0) {
@@ -318,22 +275,8 @@ export class ModelState {
 		}
 	}
 
-	// checkbox-driven: any animation, always loops, switches freely
-	private setSkillChecked(name: string, checked: boolean) {
-		if (!checked) {
-			if (this.skillActiveAnimationName === name) {
-				this.skillActiveAnimationName = undefined;
-				this.animationUpdate = true;
-			}
-			return;
-		}
-
-		this.skillActiveAnimationName = name;
-		this.animationUpdate = true;
-	}
-
 	public updateBondPlaybackProgress(animationState: AnimationState) {
-		this.bond.updatePlaybackProgress(animationState);
+		this.bond.updatePlaybackProgress(animationState, store.view);
 	}
 
 	public updateHeroAnimationProgress(animationState: AnimationState) {
@@ -347,21 +290,17 @@ export class ModelState {
 		if (store.view !== "skill") {
 			return;
 		}
+		this.skillView.updatePlaybackProgress(animationState);
+	}
 
-		const current = animationState.getCurrent(this.skillActiveTrackIndex);
-		const { progress } = computeBarProgress(
-			current?.animation
-				? [{ animationName: current.animation.name, loop: true }]
-				: [],
-			current?.animation
-				? {
-						animationName: current.animation.name,
-						trackTime: current.trackTime,
-						duration: current.animation.duration,
-					}
-				: undefined
-		);
-		this.skillBarProgress = progress;
+	/** Runs every per-view checkbox/progress sync once per frame, in render order. */
+	public syncFrame(animationState: AnimationState) {
+		this.syncBondCheckboxState(animationState);
+		this.syncHeroCheckboxState();
+		this.syncSkillCheckboxState(animationState);
+		this.updateBondPlaybackProgress(animationState);
+		this.updateHeroAnimationProgress(animationState);
+		this.updateSkillPlaybackProgress(animationState);
 	}
 
 	public handleBondAnimationComplete(
@@ -371,6 +310,8 @@ export class ModelState {
 		this.bondAutoPlay.handleAnimationComplete(
 			entry,
 			animationState,
+			store.view,
+			store.skeletonData,
 			this.resolveSkelName()!
 		);
 	}
@@ -398,137 +339,7 @@ export class ModelState {
 			);
 		}
 
-		return this.getSkillAnimation(skeletonData, animationState);
-	}
-
-	private getSkillAnimation(
-		skeletonData: SkeletonData,
-		animationState: AnimationState
-	): Animation[] {
-		if (this.lastSkillSkeletonData !== skeletonData) {
-			this.lastSkillSkeletonData = skeletonData;
-			this.skillActiveAnimationName = undefined;
-			this.skillActiveTrackIndex = 0;
-		}
-
-		const animations: Animation[] = [];
-		const idleName = findIdleAnimationName(skeletonData.animations);
-		if (idleName) {
-			animations.push({ trackIndex: 0, animationName: idleName, loop: true });
-		}
-
-		const beforeBg = animations.length;
-		this.tryAddAnimations(animations, POSSIBLE_BG_NAMES, skeletonData);
-		const bgAnimations = animations.slice(beforeBg);
-
-		if (this.touch || this.cutScene) {
-			const possible = this.touch ? TOUCH_NAMES : CUTSCENE_NAMES;
-			const touch = this.touch;
-			const cutScene = this.cutScene;
-			this.touch = false;
-			this.cutScene = false;
-
-			if (cutScene) {
-				for (const { trackIndex } of bgAnimations) {
-					animationState.setEmptyAnimation(trackIndex, 0);
-				}
-			}
-
-			// silence the checkbox loop track so it can't outrank
-			// (and stomp) the one-shot animation about to play
-			animationState.setEmptyAnimation(SKILL_CHECKBOX_TRACK, 0);
-
-			const startingTrack = animations.length;
-			animations.splice(0, animations.length);
-			this.tryAddAnimations(animations, possible, skeletonData, {
-				loop: false,
-				startingTrack,
-			});
-			this.skillActiveTrackIndex = startingTrack;
-
-			const listener: AnimationStateListener = {
-				complete: (entry: TrackEntry) => {
-					if (!possible.includes(entry.animation?.name ?? "")) {
-						return;
-					}
-
-					for (let i = 0; i < animations.length; i++) {
-						animationState.setEmptyAnimation(
-							i + startingTrack,
-							touch ? 0 : 0.5
-						);
-					}
-					for (const track of animationState.tracks) {
-						if (
-							track &&
-							POSSIBLE_IDLE_NAMES.includes(track.animation?.name ?? "")
-						) {
-							track.trackTime = 0;
-						}
-					}
-
-					if (cutScene) {
-						for (const { trackIndex, animationName, loop } of bgAnimations) {
-							animationState.setAnimation(trackIndex, animationName, loop);
-						}
-					}
-
-					const resumeName = this.skillActiveAnimationName ?? idleName;
-					if (resumeName) {
-						animationState.setAnimation(SKILL_CHECKBOX_TRACK, resumeName, true);
-					}
-
-					this.skillActiveTrackIndex = 0;
-					animationState.removeListener(listener);
-				},
-			};
-			animationState.addListener(listener);
-		}
-
-		// checkbox-driven loop, on its own track so it never
-		// collides with the touch/cutscene one-shot flow above.
-		// Skipped while a one-shot owns the higher-priority tracks
-		// (see the setEmptyAnimation/resumeName above) so it can't
-		// stomp the one-shot's pose.
-		if (this.skillActiveTrackIndex === 0) {
-			if (this.skillActiveAnimationName) {
-				animations.push({
-					trackIndex: SKILL_CHECKBOX_TRACK,
-					animationName: this.skillActiveAnimationName,
-					loop: true,
-				});
-			} else if (idleName) {
-				animations.push({
-					trackIndex: SKILL_CHECKBOX_TRACK,
-					animationName: idleName,
-					loop: true,
-				});
-			}
-		}
-
-		return animations;
-	}
-
-	tryAddAnimations(
-		animations: Animation[],
-		possible: string[],
-		skeletonData: SkeletonData,
-		options?: {
-			onlyOne?: boolean;
-			startingTrack?: number;
-			loop?: boolean;
-		}
-	) {
-		for (const anim of possible) {
-			if (skeletonData.animations.some((a) => a.name === anim)) {
-				animations.push({
-					trackIndex: animations.length + (options?.startingTrack ?? 0),
-					animationName: anim,
-					loop: options?.loop ?? true,
-				});
-				if (options?.onlyOne) break;
-			}
-		}
+		return this.skillView.getAnimation(skeletonData, animationState);
 	}
 
 	handleModelChange(key: string, modelSwitch = false, viewSwitch = false) {
@@ -602,7 +413,7 @@ export class ModelState {
 			}
 
 			this.modelUpdate = true;
-			this.skinLevel = 1;
+			this.skinState.skinLevel = 1;
 			this.cycleIndex = 0;
 		} else if (viewSwitch) {
 			if (store.view === "bond") {
@@ -667,6 +478,14 @@ export class ModelState {
 
 	public getAbsoluteEntry(): Entry {
 		return this.entry(this.absoluteHeroIndex);
+	}
+
+	public selectHeroById(id: string) {
+		this.absoluteHeroIndex =
+			Object.values(store.map).findIndex((h) => h.id === id) ?? 0;
+		this.relativeHeroIndex =
+			store.filteredHeroData.findIndex((h) => h.id === id) ?? 0;
+		this.handleModelChange("", true);
 	}
 
 	/** The skel name backing the currently displayed view; only defined for hero/alt/bond. */

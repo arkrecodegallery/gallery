@@ -56,3 +56,19 @@ export function resetKeybinds() {
 	Object.assign(keybinds, defaultKeybinds);
 	localStorage.setItem(STORAGE_KEY, JSON.stringify(keybinds));
 }
+
+export function addKeydownListener(callback: (ev: KeyboardEvent) => void) {
+	window.addEventListener("keydown", (ev) => {
+		const tag = (ev.target as HTMLElement)?.tagName;
+		const isInput =
+			tag === "INPUT" ||
+			tag === "TEXTAREA" ||
+			(ev.target as HTMLElement).isContentEditable;
+
+		if (isInput) {
+			return;
+		}
+
+		callback(ev);
+	});
+}

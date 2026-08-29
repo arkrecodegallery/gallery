@@ -1,6 +1,5 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { describe, expect, it } from "vitest";
 import type { Animation, SkeletonData } from "@esotericsoftware/spine-core";
-import { store } from "$lib/hooks/state.svelte";
 import { BondViewState } from "$lib/hooks/bondViewState.svelte";
 import { BondSequenceActions } from "$lib/hooks/bondSequenceActions";
 
@@ -13,29 +12,25 @@ function fakeSkeleton(names: string[]): SkeletonData {
 }
 
 describe("BondSequenceActions", () => {
-	beforeEach(() => {
-		store.skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
-	});
-
 	it("advanceStage advances the sequencer and syncs stage meta onto the reactive state", () => {
+		const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
 		const state = new BondViewState();
 		const actions = new BondSequenceActions(state);
 
-		expect(actions.startAutoPlay("H999")).toBe(true);
+		expect(actions.startAutoPlay(skeletonData, "H999")).toBe(true);
 		expect(state.stageIndex).toBe(0);
 
-		expect(actions.advanceStage("H999")).toBe(true);
+		expect(actions.advanceStage(skeletonData, "H999")).toBe(true);
 		expect(state.stageIndex).toBe(1);
 		expect(state.stageCount).toBe(3);
 	});
 
 	it("advanceStage/startAutoPlay return false when there's no skeleton loaded", () => {
-		store.skeletonData = undefined;
 		const state = new BondViewState();
 		const actions = new BondSequenceActions(state);
 
-		expect(actions.advanceStage("H999")).toBe(false);
-		expect(actions.startAutoPlay("H999")).toBe(false);
+		expect(actions.advanceStage(undefined, "H999")).toBe(false);
+		expect(actions.startAutoPlay(undefined, "H999")).toBe(false);
 	});
 
 	it("advanceStills wraps the stills index around the image count", () => {
@@ -49,16 +44,17 @@ describe("BondSequenceActions", () => {
 	});
 
 	it("getAnimation returns the manual list once manualOverride is set", () => {
+		const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
 		const state = new BondViewState();
 		const actions = new BondSequenceActions(state);
 		const skeleton = { setToSetupPose: () => {} } as any;
 		const animationState = { clearTracks: () => {} } as any;
 
-		actions.getAnimation(store.skeletonData!, animationState, skeleton, "H999", () => []);
+		actions.getAnimation(skeletonData, animationState, skeleton, "H999", () => []);
 		state.sequencer.manualOverride = true;
 
 		const result = actions.getAnimation(
-			store.skeletonData!,
+			skeletonData,
 			animationState,
 			skeleton,
 			"H999",
@@ -71,13 +67,14 @@ describe("BondSequenceActions", () => {
 	});
 
 	it("getAnimation otherwise maps the sequencer's current sequence onto track 0", () => {
+		const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
 		const state = new BondViewState();
 		const actions = new BondSequenceActions(state);
 		const skeleton = { setToSetupPose: () => {} } as any;
 		const animationState = { clearTracks: () => {} } as any;
 
 		const result = actions.getAnimation(
-			store.skeletonData!,
+			skeletonData,
 			animationState,
 			skeleton,
 			"H999",

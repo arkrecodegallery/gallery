@@ -4,15 +4,10 @@
 	import DataTable from "./data-table.svelte";
 	import * as Dialog from "$lib/components/ui/dialog/index";
 	import { Button } from "./ui/button/index";
-	import { renderSnippet } from "./ui/data-table";
-	import {
-		addKeydownListener,
-		clearAllFilters,
-		fileName,
-		imperialHeight,
-		imperialWeight,
-		nonEmptyFilterFn,
-	} from "$lib/utils";
+	import { addKeydownListener } from "$lib/core/keybinds.svelte";
+	import { clearAllFilters } from "./tableFilters";
+	import { buildHeroColumns } from "./listingColumns";
+	import { persistTable } from "./listingTableDom";
 	import Key from "./key.svelte";
 	import Icon from "@iconify/svelte";
 	import { onMount } from "svelte";
@@ -47,178 +42,13 @@
 		});
 	});
 
-	const columns: ColumnDef<Entry>[] = $derived.by(() => {
-		const cols: ColumnDef<Entry>[] = [
-			{
-				id: "actions",
-				cell: ({ row }) => {
-					const id = row.original.id;
-					const src = `/icons/heroes/${id}.png`;
-					const alt = `/icons/__No_Icon__.png`;
-					return renderSnippet(viewButton, { id, src, alt });
-				},
-			},
-			{
-				id: "Name",
-				accessorFn: (row) => row.details.name,
-				header: "Name",
-				filterFn: nonEmptyFilterFn,
-				enableColumnFilter: true,
-			},
-			{
-				accessorKey: "id",
-				header: "ID",
-				filterFn: nonEmptyFilterFn,
-				enableColumnFilter: true,
-			},
-		];
-
-		if (showDetails) {
-			cols.push(
-				...([
-					{
-						id: "Stars",
-						accessorFn: (row) => row.details.stars,
-						header: "Stars",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "Element",
-						accessorFn: (row) => row.details.element,
-						header: "Element",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "Job",
-						accessorFn: (row) => row.details.job,
-						header: "Job",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "Constellation",
-						accessorFn: (row) => row.details.constellation,
-						header: "Constellation",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "Birthday",
-						accessorFn: (row) => row.details.birthday,
-						header: "Birthday",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "Cup Size",
-						accessorFn: (row) => row.details.cup_size,
-						header: "Cup Size",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "Height",
-						accessorFn: (row) => imperialHeight(row),
-						header: "Height",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "Weight",
-						accessorFn: (row) => imperialWeight(row),
-						header: "Weight",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-				] satisfies ColumnDef<Entry>[])
-			);
-		}
-
-		if (showModels) {
-			cols.push(
-				...([
-					{
-						id: "alt",
-						accessorFn: (row) => fileName(row.alt?.atlas),
-						header: "Alt",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "skill",
-						accessorFn: (row) => fileName(row.skill?.atlas),
-						header: "Skill",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "bond",
-						accessorFn: (row) =>
-							row.bond?.map((b) =>
-								b.kind === "stills"
-									? fileName(b.images[0])
-									: fileName(b.bundle.atlas)
-							),
-						header: "Bond",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-					{
-						id: "collection",
-						accessorFn: (row) =>
-							row.collection?.map((c) => fileName(c)),
-						header: "Collection",
-						filterFn: nonEmptyFilterFn,
-						enableColumnFilter: true,
-					},
-				] satisfies ColumnDef<Entry>[])
-			);
-		}
-
-		return cols;
-	});
+	const columns: ColumnDef<Entry>[] = $derived.by(() =>
+		buildHeroColumns(showDetails, showModels, viewButton)
+	);
 
 	function onclick(id: string) {
-		const absoluteHeroIndex =
-			Object.values(store.map).findIndex((h) => h.id === id) ?? 0;
-		const relativeHeroIndex =
-			store.filteredHeroData.findIndex((h) => h.id === id) ?? 0;
-
-		store.modelState.absoluteHeroIndex = absoluteHeroIndex;
-		store.modelState.relativeHeroIndex = relativeHeroIndex;
-		store.modelState.handleModelChange("", true);
+		store.modelState.selectHeroById(id);
 		open = false;
-	}
-
-	function persistTable(node: HTMLElement) {
-		const container = document.getElementById("datatable-container");
-		const table = container?.querySelector<HTMLElement>("#datatable");
-		if (container && table) {
-			node.appendChild(table);
-			scrollToSelectedHero(table);
-		}
-
-		return {
-			destroy() {
-				const table = node.querySelector("#datatable");
-				if (container && table) {
-					container.appendChild(table);
-				}
-			},
-		};
-	}
-
-	function scrollToSelectedHero(table: HTMLElement) {
-		const index = store.modelState.absoluteHeroIndex;
-		const row = table.querySelector<HTMLElement>(
-			`[data-row-index="${index}"]`
-		);
-		if (!row) return;
-
-		const header = table.querySelector<HTMLElement>("thead");
-		table.scrollTop = row.offsetTop - (header?.offsetHeight ?? 0);
 	}
 
 	function hideUI() {

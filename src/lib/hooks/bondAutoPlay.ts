@@ -1,9 +1,12 @@
-import { store } from "./state.svelte";
 import type { BondViewState } from "./bondViewState.svelte";
 import type { BondSequenceActions } from "./bondSequenceActions";
-import { Animate } from "$lib/core/animate";
-import { getBondRule } from "$lib/core/bondRules";
-import type { AnimationState, TrackEntry } from "@esotericsoftware/spine-core";
+import { buildBondAnimate } from "$lib/core/bondAnimate";
+import type { ModelView } from "$lib/core/types";
+import type {
+	AnimationState,
+	SkeletonData,
+	TrackEntry,
+} from "@esotericsoftware/spine-core";
 
 export class BondAutoPlay {
 	constructor(
@@ -15,46 +18,51 @@ export class BondAutoPlay {
 	handleAnimationComplete(
 		entry: TrackEntry,
 		animationState: AnimationState,
+		view: ModelView,
+		skeletonData: SkeletonData | undefined,
 		skelName: string
 	) {
-		if (this.tryAdvance(entry, skelName)) {
+		if (this.tryAdvance(entry, view, skeletonData, skelName)) {
 			return;
 		}
-		this.handleLoopComplete(entry, animationState);
+		this.handleLoopComplete(entry, animationState, view);
 	}
 
-	private tryAdvance(entry: TrackEntry, skelName: string): boolean {
+	private tryAdvance(
+		entry: TrackEntry,
+		view: ModelView,
+		skeletonData: SkeletonData | undefined,
+		skelName: string
+	): boolean {
 		if (
-			store.view !== "bond" ||
+			view !== "bond" ||
 			!this.state.autoPlay ||
 			this.state.manualOverride ||
 			entry.next !== null ||
-			!store.skeletonData
+			!skeletonData
 		) {
 			return false;
 		}
 
-		const rule = getBondRule(skelName);
-		if (rule.disable) {
-			this.state.autoPlay = false;
-			return false;
-		}
-
-		const animate = new Animate(store.skeletonData.animations, rule);
+		const { animate } = buildBondAnimate(skeletonData.animations, skelName);
 		if (this.state.sequencer.stageIndex >= animate.groups.length - 1) {
 			this.state.autoPlay = false;
 			return false;
 		}
 
-		if (!this.actions.advanceStage(skelName)) {
+		if (!this.actions.advanceStage(skeletonData, skelName)) {
 			return false;
 		}
 		this.requestUpdate();
 		return true;
 	}
 
-	private handleLoopComplete(entry: TrackEntry, animationState: AnimationState) {
-		if (store.view !== "bond" || this.state.manualOverride) {
+	private handleLoopComplete(
+		entry: TrackEntry,
+		animationState: AnimationState,
+		view: ModelView
+	) {
+		if (view !== "bond" || this.state.manualOverride) {
 			return;
 		}
 

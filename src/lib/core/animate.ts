@@ -20,6 +20,11 @@ interface AnimationEntry {
 	animations: Animation[];
 }
 
+interface AnimationLookup {
+	animation: AnimationEntry;
+	name: AnimationName;
+}
+
 /** Moves each key immediately before its value; classification never reorders, only this does. */
 function reorderAnimations(
 	animations: Animation[],
@@ -51,6 +56,12 @@ export class Animate {
 	readonly specials = ["hand", "lick", "slap", "kiss", "touch", "emo"];
 	readonly transitions = ["in", "out", "to", "off"];
 
+	private animations: Animation[] = [];
+	private rename?: Record<string, string>;
+	private overrides?: Record<string, BondRuleOverride>;
+	private currentGroup: AnimationEntry[] = [];
+	private seenInitialIdle = false;
+
 	constructor(animations: Animation[], rule?: BondRule) {
 		const reordered = reorderAnimations(animations, rule?.reorderBefore);
 		const filtered = rule?.skip?.length
@@ -64,160 +75,197 @@ export class Animate {
 		rename?: Record<string, string>,
 		overrides?: Record<string, BondRuleOverride>
 	) {
+		this.animations = animations;
+		this.rename = rename;
+		this.overrides = overrides;
 		this.groups = [];
 		this.background = [];
-		let currentGroup: AnimationEntry[] = [];
-		let seenInitialIdle = false;
-
-		const getAnimation = (
-			index: number
-		):
-			| {
-					animation: AnimationEntry;
-					name: AnimationName;
-			  }
-			| undefined => {
-			if (index < 0 || index >= animations.length) {
-				return undefined;
-			}
-
-			const animation = animations[index];
-			const alias = rename?.[animation.name] ?? animation.name;
-			const name = this.parseName(alias);
-
-			// override wins over whatever the naming convention parsed
-			const override = overrides?.[animation.name];
-			if (override === "stop") {
-				// same as "loop": always flushes a new group
-				name.mode = "loop";
-				name.transition = false;
-			} else if (override === "transition") {
-				name.transition = true;
-			} else if (override === "variant") {
-				name.variant = true;
-			} else if (override === "bypass") {
-				name.mode = "finish";
-				name.transition = false;
-			}
-
-			return { animation: { animations: [animation] }, name };
-		};
-
-		const flush = (next?: AnimationEntry) => {
-			this.groups.push(currentGroup);
-			currentGroup = [];
-			if (next) {
-				currentGroup.push(next);
-			}
-		};
-
-		const addCycle = (animation: AnimationEntry) => {
-			currentGroup[currentGroup.length - 1].animations.push(
-				animation.animations[0]
-			);
-		};
+		this.currentGroup = [];
+		this.seenInitialIdle = false;
 
 		for (let i = 0; i < animations.length; i++) {
-			const prev = getAnimation(i - 1);
-			const { animation: curr, name } = getAnimation(i)!;
-			const next = getAnimation(i + 1);
-
-			if (name.mode === "skip") {
-				// skip outright
-				continue;
-			}
-
-            // bg
-            else if (name.fullName === "90_bg") {
-				// reliable bg channel
-				this.background.push(curr.animations[0]);
-			} else if (name.stage >= 8) {
-				// skip background and misc effects
-				continue;
-			}
-
-			// forced variant, regardless of naming-based continuation
-			else if (name.variant) {
-				if (currentGroup.length > 0) {
-					addCycle(curr);
-				} else {
-					currentGroup.push(curr);
-				}
-			}
-
-			// transition
-			else if (name.transition) {
-				if (prev?.name.transition) {
-					// skip multiple transitions in a row
-					continue;
-				}
-				// always bypass transition
-				currentGroup.push(curr);
-			}
-
-			// idle
-			else if (name.mode === "idle") {
-				if (!seenInitialIdle && name.prefix === 0) {
-					// stop on first idle
-					// first anim must be first idle
-					seenInitialIdle = true;
-					this.groups = [];
-					currentGroup = [];
-					currentGroup.push(curr);
-				} else if (
-					prev?.name.mode === "idle" &&
-					this.isVariantContinuation(prev.name, name)
-				) {
-					// numbered variant of the same idle - part of one big loop
-					addCycle(curr);
-				} else if (next?.name.mode === "loop") {
-					// stop on idle before a loop
-					flush(curr);
-				} else if (next?.name.transition) {
-					// stop on idle before a transition
-					flush(curr);
-				} else {
-					// otherwise bypass idle
-					currentGroup.push(curr);
-				}
-			}
-
-			// loop
-			else if (name.mode === "loop") {
-				if (
-					prev?.name.mode === "loop" &&
-					this.isVariantContinuation(prev.name, name)
-				) {
-					// numbered variant of the same loop - part of one big loop
-					addCycle(curr);
-				} else {
-					// always stop on loops
-					flush(curr);
-				}
-			}
-
-			// finish
-			else if (name.mode === "finish") {
-				// always bypass a finish, only ever plays once
-				currentGroup.push(curr);
-			}
-
-			// end
-			else if (name.mode === "end") {
-				if (
-					prev?.name.mode === "end" &&
-					this.isVariantContinuation(prev.name, name)
-				) {
-					// numbered variant of the same end - part of one big loop
-					addCycle(curr);
-				} else {
-					// always stop on an end
-					flush(curr);
-				}
-			}
+			const prev = this.getAnimation(i - 1);
+			const { animation: curr, name } = this.getAnimation(i)!;
+			const next = this.getAnimation(i + 1);
+			this.classify(prev, curr, name, next);
 		}
-		flush();
+		this.flush();
 
+		this.buildStageByName();
+	}
+
+	private classify(
+		prev: AnimationLookup | undefined,
+		curr: AnimationEntry,
+		name: AnimationName,
+		next: AnimationLookup | undefined
+	) {
+		if (name.mode === "skip") {
+			// skip outright
+			return;
+		}
+
+		if (name.fullName === "90_bg") {
+			// reliable bg channel
+			this.background.push(curr.animations[0]);
+			return;
+		}
+
+		if (name.stage >= 8) {
+			// skip background and misc effects
+			return;
+		}
+
+		if (name.variant) {
+			// forced variant, regardless of naming-based continuation
+			this.handleVariant(curr);
+			return;
+		}
+
+		if (name.transition) {
+			this.handleTransition(prev, curr);
+			return;
+		}
+
+		if (name.mode === "idle") {
+			this.handleIdle(prev, curr, name, next);
+			return;
+		}
+
+		if (name.mode === "loop") {
+			this.handleLoop(prev, curr, name);
+			return;
+		}
+
+		if (name.mode === "finish") {
+			// always bypass a finish, only ever plays once
+			this.currentGroup.push(curr);
+			return;
+		}
+
+		if (name.mode === "end") {
+			this.handleEnd(prev, curr, name);
+		}
+	}
+
+	private handleVariant(curr: AnimationEntry) {
+		if (this.currentGroup.length > 0) {
+			this.addCycle(curr);
+		} else {
+			this.currentGroup.push(curr);
+		}
+	}
+
+	private handleTransition(prev: AnimationLookup | undefined, curr: AnimationEntry) {
+		if (prev?.name.transition) {
+			// skip multiple transitions in a row
+			return;
+		}
+		// always bypass transition
+		this.currentGroup.push(curr);
+	}
+
+	private handleIdle(
+		prev: AnimationLookup | undefined,
+		curr: AnimationEntry,
+		name: AnimationName,
+		next: AnimationLookup | undefined
+	) {
+		if (!this.seenInitialIdle && name.prefix === 0) {
+			// stop on first idle
+			// first anim must be first idle
+			this.seenInitialIdle = true;
+			this.groups = [];
+			this.currentGroup = [];
+			this.currentGroup.push(curr);
+		} else if (
+			prev?.name.mode === "idle" &&
+			this.isVariantContinuation(prev.name, name)
+		) {
+			// numbered variant of the same idle - part of one big loop
+			this.addCycle(curr);
+		} else if (next?.name.mode === "loop") {
+			// stop on idle before a loop
+			this.flush(curr);
+		} else if (next?.name.transition) {
+			// stop on idle before a transition
+			this.flush(curr);
+		} else {
+			// otherwise bypass idle
+			this.currentGroup.push(curr);
+		}
+	}
+
+	private handleLoop(
+		prev: AnimationLookup | undefined,
+		curr: AnimationEntry,
+		name: AnimationName
+	) {
+		if (prev?.name.mode === "loop" && this.isVariantContinuation(prev.name, name)) {
+			// numbered variant of the same loop - part of one big loop
+			this.addCycle(curr);
+		} else {
+			// always stop on loops
+			this.flush(curr);
+		}
+	}
+
+	private handleEnd(
+		prev: AnimationLookup | undefined,
+		curr: AnimationEntry,
+		name: AnimationName
+	) {
+		if (prev?.name.mode === "end" && this.isVariantContinuation(prev.name, name)) {
+			// numbered variant of the same end - part of one big loop
+			this.addCycle(curr);
+		} else {
+			// always stop on an end
+			this.flush(curr);
+		}
+	}
+
+	private flush(next?: AnimationEntry) {
+		this.groups.push(this.currentGroup);
+		this.currentGroup = [];
+		if (next) {
+			this.currentGroup.push(next);
+		}
+	}
+
+	private addCycle(animation: AnimationEntry) {
+		this.currentGroup[this.currentGroup.length - 1].animations.push(
+			animation.animations[0]
+		);
+	}
+
+	private getAnimation(index: number): AnimationLookup | undefined {
+		if (index < 0 || index >= this.animations.length) {
+			return undefined;
+		}
+
+		const animation = this.animations[index];
+		const alias = this.rename?.[animation.name] ?? animation.name;
+		const name = this.parseName(alias);
+
+		// override wins over whatever the naming convention parsed
+		const override = this.overrides?.[animation.name];
+		if (override === "stop") {
+			// same as "loop": always flushes a new group
+			name.mode = "loop";
+			name.transition = false;
+		} else if (override === "transition") {
+			name.transition = true;
+		} else if (override === "variant") {
+			name.variant = true;
+		} else if (override === "bypass") {
+			name.mode = "finish";
+			name.transition = false;
+		}
+
+		return { animation: { animations: [animation] }, name };
+	}
+
+	private buildStageByName() {
 		this.stageByName = new Map();
 		this.groups.forEach((group, stageIndex) => {
 			group.forEach((entry, entryIndex) => {

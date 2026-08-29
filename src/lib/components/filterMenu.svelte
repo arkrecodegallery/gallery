@@ -7,6 +7,7 @@
 	import Input from "./ui/input/input.svelte";
 	import { store } from "$lib/hooks/state.svelte";
 	import { onMount } from "svelte";
+	import { persistFilterMenuState } from "./filterMenuState";
 
 	interface Props {
 		table: Table<TData>;
@@ -76,8 +77,7 @@
 			}
 		}
 
-		store.menuStates[column.id].asc = asc;
-		store.menuStates[column.id].desc = desc;
+		persistFilterMenuState(column.id, { asc, desc });
 	}
 
 	function applyFilter(setNonEmpty: boolean) {
@@ -93,16 +93,13 @@
 			column.setFilterValue(value || undefined);
 		}
 
-		store.menuStates[column.id].value = value;
-		store.menuStates[column.id].nonEmpty = nonEmpty;
+		persistFilterMenuState(column.id, { value, nonEmpty });
 	}
 
 	function clearFilter() {
 		nonEmpty = false;
 		value = "";
 		column.setFilterValue(undefined);
-		store.menuStates[column.id].value = value;
-		store.menuStates[column.id].nonEmpty = nonEmpty;
 
 		asc = false;
 		desc = false;
@@ -111,8 +108,8 @@
 			store.sorting.splice(index, 1);
 			table.setSorting([...store.sorting]);
 		}
-		store.menuStates[column.id].asc = asc;
-		store.menuStates[column.id].desc = desc;
+
+		persistFilterMenuState(column.id, { value, nonEmpty, asc, desc });
 	}
 </script>
 

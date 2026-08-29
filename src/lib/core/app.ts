@@ -22,7 +22,15 @@ export class App implements SpineCanvasApp {
 
 	loadAssets(canvas: SpineCanvas): void {
 		const entry = store.modelState.getAbsoluteEntry();
-		store.assetManager.loadModel(canvas, entry);
+		store.assetManager.loadModel(
+			canvas,
+			entry,
+			store.view,
+			store.modelState.cycleIndex,
+			(loading) => {
+				store.loading = loading;
+			}
+		);
 	}
 
 	initialize(canvas: SpineCanvas) {
@@ -128,12 +136,7 @@ export class App implements SpineCanvasApp {
 		this.animation.apply(this.skeleton);
 		this.skeleton.updateWorldTransform();
 
-		store.modelState.syncBondCheckboxState(this.animation);
-		store.modelState.syncHeroCheckboxState();
-		store.modelState.syncSkillCheckboxState(this.animation);
-		store.modelState.updateBondPlaybackProgress(this.animation);
-		store.modelState.updateHeroAnimationProgress(this.animation);
-		store.modelState.updateSkillPlaybackProgress(this.animation);
+		store.modelState.syncFrame(this.animation);
 	}
 
 	async reloadModel(canvas: SpineCanvas) {

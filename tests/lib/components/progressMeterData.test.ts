@@ -6,7 +6,7 @@ function baseModelState(): any {
 	return {
 		getAbsoluteEntry: () => ({ id: "H999" }),
 		cycleIndex: 0,
-		skillBarProgress: 0,
+		skillView: { barProgress: 0 },
 		bond: {
 			stillsIndex: 0,
 			manualOverride: false,
@@ -54,9 +54,9 @@ describe("computeMeterData", () => {
 		expect(data.barProgress).toBe(0.5);
 	});
 
-	it("skill view has no dot row, just a progress bar reflecting skillBarProgress", () => {
+	it("skill view has no dot row, just a progress bar reflecting skillView.barProgress", () => {
 		const state = baseModelState();
-		state.skillBarProgress = 0.75;
+		state.skillView.barProgress = 0.75;
 
 		const data = computeMeterData("skill", state as ModelState);
 

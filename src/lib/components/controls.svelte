@@ -8,7 +8,12 @@
 	import { Button } from "./ui/button";
 	import { ClapperboardIcon, ShirtIcon } from "@lucide/svelte";
 	import ProgressMeter from "$lib/components/progress-meter.svelte";
-	import { cn, fileName } from "$lib/utils";
+	import { fileName } from "$lib/utils";
+	import {
+		computeDisplayStages,
+		isBridgedGap as isBridgedGapAt,
+		stageBarClass as stageBarClassAt,
+	} from "./controlsDisplay";
 
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
@@ -22,53 +27,14 @@
 		return presentation?.kind === "stills" ? presentation : undefined;
 	});
 
-	// stageMap has no entry for skipped animations (e.g. touch/emo), which
-	// splits one visual group in two; bridge gaps enclosed by the same
-	// stage on both sides so the group reads as continuous around them
-	const displayStages = $derived.by(() => {
-		if (!stageMap) return undefined;
-		const stages = animations.map((a) => stageMap.get(a.name));
-		const filled = [...stages];
-
-		let i = 0;
-		while (i < filled.length) {
-			if (filled[i] !== undefined) {
-				i++;
-				continue;
-			}
-			let j = i;
-			while (j < filled.length && filled[j] === undefined) j++;
-
-			const before = i > 0 ? filled[i - 1] : undefined;
-			const after = j < filled.length ? stages[j] : undefined;
-			if (before !== undefined && before === after) {
-				filled.fill(before, i, j);
-			}
-			i = j;
-		}
-
-		return filled;
-	});
+	const displayStages = $derived(computeDisplayStages(stageMap, animations));
 
 	function stageBarClass(index: number): string | undefined {
-		const stage = displayStages?.[index];
-		if (stage === undefined) return undefined;
-
-		const isFirst = stage !== displayStages?.[index - 1];
-		const isLast = stage !== displayStages?.[index + 1];
-
-		return cn(
-			"pointer-events-none absolute left-1 w-5.5 bg-foreground/20",
-			isFirst ? "top-1 rounded-t-full" : "top-0 rounded-t-none",
-			isLast ? "bottom-1 rounded-b-full" : "bottom-0 rounded-b-none",
-		);
+		return stageBarClassAt(displayStages, index);
 	}
 
 	function isBridgedGap(index: number): boolean {
-		return (
-			displayStages?.[index] !== undefined &&
-			stageMap?.get(animations[index].name) === undefined
-		);
+		return isBridgedGapAt(displayStages, stageMap, animations, index);
 	}
 
 	let { children } = $props();
@@ -105,11 +71,8 @@
 			</DropdownMenu.Trigger>
 			<DropdownMenu.Content>
 				<DropdownMenu.RadioGroup
-					bind:value={store.modelState.skin}
-					onValueChange={() => {
-						store.modelState.skipSkinCalculation = true;
-						store.modelState.skinUpdate = true;
-					}}
+					bind:value={store.modelState.skinState.skin}
+					onValueChange={() => store.modelState.confirmManualSkinPick()}
 				>
 					{#each skins as skin}
 						<DropdownMenu.RadioItem value={skin.name}>

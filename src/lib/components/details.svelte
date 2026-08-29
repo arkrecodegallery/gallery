@@ -3,62 +3,15 @@
 	import * as Kbd from "$lib/components/ui/kbd/index.js";
 	import Key from "./key.svelte";
 	import { keybinds } from "$lib/core/keybinds.svelte";
-	import { imperialHeight, imperialWeight, prettyBirthday } from "$lib/utils";
-	import {
-		ZodiacAquarius,
-		ZodiacAries,
-		ZodiacCancer,
-		ZodiacCapricorn,
-		ZodiacGemini,
-		ZodiacLeo,
-		ZodiacLibra,
-		ZodiacPisces,
-		ZodiacSagittarius,
-		ZodiacScorpio,
-		ZodiacTaurus,
-		ZodiacVirgo,
-	} from "@lucide/svelte";
-
-	const zodiacIcons: Record<string, typeof ZodiacAries> = {
-		aries: ZodiacAries,
-		taurus: ZodiacTaurus,
-		gemini: ZodiacGemini,
-		cancer: ZodiacCancer,
-		leo: ZodiacLeo,
-		virgo: ZodiacVirgo,
-		libra: ZodiacLibra,
-		scorpio: ZodiacScorpio,
-		sagittarius: ZodiacSagittarius,
-		capricorn: ZodiacCapricorn,
-		aquarius: ZodiacAquarius,
-		pisces: ZodiacPisces,
-	};
+	import { imperialHeight, imperialWeight, prettyBirthday } from "$lib/core/format";
+	import { zodiacIcons, starDisplay } from "./detailsFormat";
 
 	let entry = $derived.by(() => {
 		() => store.modelState.absoluteHeroIndex;
 		return Object.values(store.map)[store.modelState.absoluteHeroIndex];
 	});
 
-	const stars = $derived.by(() => {
-		if (!entry.details.stars) return undefined;
-		const count = Number(entry.details.stars);
-		if (Number.isNaN(count)) return undefined;
-
-		let width = "";
-		switch (count) {
-			case 3:
-				width = "w-10";
-				break;
-			case 4:
-				width = "w-13";
-				break;
-			case 5:
-				width = "w-16";
-				break;
-		}
-
-		return { src: `/icons/stars/${count}-Stars.svg`, width };
-	});
+	const stars = $derived(starDisplay(entry));
 
 	const ZodiacIcon = $derived(
 		zodiacIcons[(entry.details.constellation ?? "").toLocaleLowerCase()]

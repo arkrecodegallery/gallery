@@ -38,10 +38,11 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0006: {
-		overrides: { "10_Idle_ani": "stop", "10_Idle_ani2": "variant" },
 		rename: { "21_Loop_ani2": "21_Loop_ani_Next" },
+		overrides: { "10_Idle_ani": "stop", "10_Idle_ani2": "variant" },
 	},
 	A0010: {
+		skip: ["00_Idle_ani3"],
 		rename: {
 			"00_Idle_ani1": "00_Idle_ani",
 			"00_Idle_ani2": "01_Idle_ani",
@@ -53,10 +54,10 @@ const rules: Record<string, BondRule> = {
 			"00_Idle_ani2": "stop",
 			"00_Idle_ani4": "stop",
 		},
-		skip: ["00_Idle_ani3"],
 		reorderBefore: { "01_Idle_in_ani": "00_Idle_ani4" },
 	},
 	A0012_N: {
+		skip: ["12B2", "12B3", "16A2", "16A3"],
 		rename: {
 			"00": "00_idle_ani0",
 			"02": "02_loop",
@@ -78,12 +79,11 @@ const rules: Record<string, BondRule> = {
 			"19": "19_loop",
 			BG: "90_BG",
 		},
-		skip: ["12B2", "12B3", "16A2", "16A3"],
 	},
 	A0013: {
+		skip: ["03_End_ani2"],
 		rename: { "01_Loop_ani2": "01_Loop_ani_Next" },
 		overrides: { "01_Loop_ani2-1": "variant" },
-		skip: ["03_End_ani2"],
 	},
 	A0014: {
 		rename: {
@@ -99,15 +99,15 @@ const rules: Record<string, BondRule> = {
 			"01_Idle_ani1": "00_Idle_ani",
 			"01_Idle_ani_1": "01_Pull_ani",
 		},
-		reorderBefore: {
-			"22_Loop_ani2": "21_Loop_ani2to3",
-			"20_Loop_ani3": "30_Finish_ani",
-		},
 		overrides: {
 			"01_Idle_ani_2": "stop",
 			"02_Idle_ani2": "variant",
 			"01_Idle_ani_1": "stop",
 			"21_Loop_ani2to3": "transition",
+		},
+		reorderBefore: {
+			"22_Loop_ani2": "21_Loop_ani2to3",
+			"20_Loop_ani3": "30_Finish_ani",
 		},
 	},
 	A0017: {
@@ -142,6 +142,7 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0021: {
+		skip: ["02_Finish_ani_Flash"],
 		rename: {
 			"01_Loop_ani2": "01_Loop_ani_Next",
 		},
@@ -151,20 +152,16 @@ const rules: Record<string, BondRule> = {
 		reorderBefore: {
 			"00_Idle_out_ani": "03_End_ani",
 		},
-		skip: ["02_Finish_ani_Flash"],
 	},
 	A0022: {
+		skip: ["00_Idle_ani3", "00_Idle_ani4", "00_Idle_ani5", "00_Idle_ani6"],
 		reorderBefore: {
 			"01_Loop_ani2": "01_Loop_ani",
 			"00_Get_in_ani": "01_Loop_ani2",
 			"00_Get_out_ani": "03_End_ani",
 		},
-		skip: ["00_Idle_ani3", "00_Idle_ani4", "00_Idle_ani5", "00_Idle_ani6"],
 	},
 	A0023: {
-		rename: {
-			"01_Idle_Top": "00_Idle_Top",
-		},
 		skip: [
 			"30_ManHand_01",
 			"30_ManHand_02",
@@ -172,6 +169,9 @@ const rules: Record<string, BondRule> = {
 			"GPussyblush_01",
 			"HButtblush_01",
 		],
+		rename: {
+			"01_Idle_Top": "00_Idle_Top",
+		},
 	},
 	A0024: {
 		skip: [
@@ -184,11 +184,11 @@ const rules: Record<string, BondRule> = {
 		],
 	},
 	A0027: {
+		skip: ["01_Loop_ani4", "01_Loop_ani5", "sky"],
 		rename: {
 			"01_Loop_ani1": "01_Loop_ani_Next",
 			"01_Loop_ani2": "01_Loop_ani_Next_Next",
 		},
-		skip: ["01_Loop_ani4", "01_Loop_ani5", "sky"],
 	},
 	A0028: {
 		overrides: {
@@ -199,33 +199,33 @@ const rules: Record<string, BondRule> = {
 	A0029: {
 		overrides: {
 			"05_Loop_ani": "transition",
+			"40_End_ani": "bypass",
 		},
 	},
 	A0030: {
 		skip: ["01_Loop_in_ani"],
 	},
 	A0032: {
+		skip: ["11_Loop_ani1-3", "11_Loop_ani1-4"],
 		reorderBefore: {
 			"11_Loop_ani1-2": "11_Loop_ani1-1",
 		},
-		skip: ["11_Loop_ani1-3", "11_Loop_ani1-4"],
 	},
 	A0033: {
 		skip: ["41_End_ani"],
 	},
 	A0034: {
+		// artistic decision to skip the second in/out animations
+		skip: ["00_Idle_ani4", "01_Loop_in_ani2", "01_Loop_out_ani"],
 		rename: {
 			"01_Loop_ani1": "01_Loop_ani_Next",
 			"01_Loop_ani2": "01_Loop_ani_Next_Next",
 			"01_Loop_ani3": "01_Loop_ani_Next_Next_Next",
 		},
-		overrides: {},
 		reorderBefore: {
 			"00_Idle_in_ani": "00_Idle_ani3",
 			"01_Loop_in_ani1": "01_Loop_ani0",
 		},
-		// artistic decision to skip the second in/out animations
-		skip: ["00_Idle_ani4", "01_Loop_in_ani2", "01_Loop_out_ani"],
 	},
 	A0037: {
 		overrides: {
@@ -274,17 +274,17 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0168: {
+		skip: ["03_Lick_ani"],
 		overrides: {
 			"01_Lick_ani": "stop",
 			"02_Lick_ani": "stop",
 		},
-		skip: ["03_Lick_ani"],
 	},
 	A0171: {
+		skip: ["BG"],
 		overrides: {
 			"10_Idle_ani": "stop",
 		},
-		skip: ["BG"],
 	},
 	A0174: {
 		overrides: {
@@ -294,18 +294,18 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0184: {
+		skip: ["21_Loop_ani2", "22_Loop_ani2"],
 		rename: { "01_Idle_ani": "00_Idle_ani" },
 		reorderBefore: {
 			"23_Loop_ani": "22_Loop_ani2",
 			"22_Loop_ani": "30_Finish_ani",
 		},
-		skip: ["21_Loop_ani2", "22_Loop_ani2"],
 	},
 	A0189: {
+		skip: ["02_Idle_ani", "03_Loop_ani"],
 		overrides: {
 			"01_Idle_ani": "variant",
 		},
-		skip: ["02_Idle_ani", "03_Loop_ani"],
 	},
 	A0198: {
 		skip: ["22_Loop_ani3"],
@@ -376,16 +376,16 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0257: {
+		skip: ["01_Idle_ani_1loop", "21_Loop_ani_1loop", "BG"],
 		rename: {
 			"01_Idle_ani": "00_Idle_ani",
 		},
-		skip: ["01_Idle_ani_1loop", "21_Loop_ani_1loop", "BG"],
 	},
 	A0260: {
+		skip: ["10_Idle_slap_ani"],
 		overrides: {
 			"09_Idle_ani": "stop",
 		},
-		skip: ["10_Idle_slap_ani"],
 	},
 	A0263: {
 		overrides: {
@@ -439,11 +439,11 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0305: {
+		skip: ["06_ldle_Hand_ani", "07_ldle_Hand_ani"],
 		// they used l instead of I fml
 		overrides: {
 			"01_ldle_Hand_ani": "stop",
 		},
-		skip: ["06_ldle_Hand_ani", "07_ldle_Hand_ani"],
 	},
 	A0311: {
 		overrides: {
@@ -543,12 +543,12 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0353: {
+		skip: ["03_Toy_ani"],
 		overrides: {
 			"01_Idle_ani": "variant",
 			"01_Toy_ani": "stop",
 			"02_Toy_ani": "variant",
 		},
-		skip: ["03_Toy_ani"],
 	},
 	A0356: {
 		overrides: {
@@ -558,9 +558,6 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0359: {
-		overrides: {
-			"05_Nipple_ani": "stop",
-		},
 		skip: [
 			"01_Friction_loop_ani",
 			"05_Nipple_loop_ani",
@@ -571,6 +568,9 @@ const rules: Record<string, BondRule> = {
 			"23_Loop_ani_short_m",
 			"40_End_loop_ani",
 		],
+		overrides: {
+			"05_Nipple_ani": "stop",
+		},
 	},
 	A0362: {
 		overrides: {
@@ -595,10 +595,10 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0380: {
+		skip: ["22_Loop_ani2", "22_Loop_ani3"],
 		overrides: {
 			"01_Friction_ani": "stop",
 		},
-		skip: ["22_Loop_ani2", "22_Loop_ani3"],
 	},
 	A0386: {
 		skip: ["22_Loop_ani2", "22_Loop_ani3"],

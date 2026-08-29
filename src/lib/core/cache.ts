@@ -1,6 +1,5 @@
 import type { SpineCanvas } from "@esotericsoftware/spine-webgl";
-import { store } from "$lib/hooks/state.svelte";
-import type { Entry } from "./types";
+import type { Entry, ModelView } from "./types";
 
 export class AssetManager {
 	base: string = "";
@@ -16,15 +15,21 @@ export class AssetManager {
 		this.base = containerBaseUrl;
 	}
 
-	public loadModel(canvas: SpineCanvas, entry: Entry) {
-		store.loading = true;
-		let assets = this.getAssets(entry);
+	public loadModel(
+		canvas: SpineCanvas,
+		entry: Entry,
+		view: ModelView,
+		cycleIndex: number,
+		onLoadingChange: (loading: boolean) => void
+	) {
+		onLoadingChange(true);
+		let assets = this.getAssets(entry, view, cycleIndex);
 
 		const binary = this.path(assets[0]);
 		const atlas = this.path(assets[1]);
 
 		if (this.binary === binary && this.atlas === atlas) {
-			this.loadingComplete();
+			this.loadingComplete(onLoadingChange);
 			return;
 		}
 
@@ -42,26 +47,25 @@ export class AssetManager {
 				canvas.assetManager.remove(disposeBinary);
 			}
 			this.loadedBinary = true;
-			this.loadingComplete();
+			this.loadingComplete(onLoadingChange);
 		});
 		canvas.assetManager.loadTextureAtlas(this.atlas, () => {
 			if (disposeAtlas && disposeAtlas !== this.atlas) {
 				canvas.assetManager.remove(disposeAtlas);
 			}
 			this.loadedAtlas = true;
-			this.loadingComplete();
+			this.loadingComplete(onLoadingChange);
 		});
 	}
 
-	loadingComplete() {
+	loadingComplete(onLoadingChange: (loading: boolean) => void) {
 		if (this.loadedBinary && this.loadedAtlas) {
-			store.loading = false;
-			
+			onLoadingChange(false);
 		}
 	}
 
-	getAssets(entry: Entry): [string, string] {
-		switch (store.view) {
+	getAssets(entry: Entry, view: ModelView, cycleIndex: number): [string, string] {
+		switch (view) {
 			case "hero":
 				return [entry.hero.skel, entry.hero.atlas];
 			case "alt":
@@ -69,7 +73,7 @@ export class AssetManager {
 			case "skill":
 				return [entry.skill!.skel, entry.skill!.atlas];
 			case "bond":
-				const presentation = entry.bond![store.modelState.cycleIndex];
+				const presentation = entry.bond![cycleIndex];
 				if (presentation.kind === "animated") {
 					return [presentation.bundle.skel, presentation.bundle.atlas];
 				}

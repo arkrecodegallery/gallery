@@ -83,26 +83,43 @@ export class BondSequencer {
 
 		this.stageIndex = stageIndex;
 
+		const { sequence, loopChain } = this.buildEnteringSequence(
+			stageIndex,
+			stopAnimations,
+			bypass
+		);
+		this.sequence = sequence;
+		this.loopChain = loopChain;
+	}
+
+	private buildEnteringSequence(
+		stageIndex: number,
+		stopAnimations: SpineAnimation[],
+		bypass: BondSequenceStep[]
+	): { sequence: BondSequenceStep[]; loopChain: string[] } {
 		if (CHAIN_ANIMATION_VARIANTS && stopAnimations.length > 1) {
-			this.loopChain = stopAnimations.map((a) => a.name);
-			this.sequence = [
-				...bypass,
-				...stopAnimations.map((animation) => ({
-					animationName: animation.name,
-					loop: false,
-				})),
-			];
-			return;
+			return {
+				loopChain: stopAnimations.map((a) => a.name),
+				sequence: [
+					...bypass,
+					...stopAnimations.map((animation) => ({
+						animationName: animation.name,
+						loop: false,
+					})),
+				],
+			};
 		}
 
-		this.loopChain = [];
 		const stop =
 			stopAnimations.length > 0
 				? this.pickCycleAlternate(`${stageIndex}-0`, stopAnimations)
 				: undefined;
-		this.sequence = stop
-			? [...bypass, { animationName: stop.name, loop: true }]
-			: bypass;
+		return {
+			loopChain: [],
+			sequence: stop
+				? [...bypass, { animationName: stop.name, loop: true }]
+				: bypass,
+		};
 	}
 
 	private outgoingBypass(

@@ -1,6 +1,5 @@
 import type { Map as GalleryMap } from "./types";
-import { Animate } from "./animate";
-import { getBondRule } from "./bondRules";
+import { buildBondAnimate } from "./bondAnimate";
 import { skelName } from "./skelName";
 import { parseSkeletonBinary } from "./skeletonParser";
 
@@ -62,8 +61,7 @@ export async function buildAnimationSheet(
 	for (const ref of collectSkelRefs(map)) {
 		const bytes = await fetchSkelBytes(ref.skel);
 		const skeletonData = parseSkeletonBinary(bytes);
-		const rule = getBondRule(skelName(ref.skel));
-		const animate = new Animate(skeletonData.animations, rule);
+		const { animate } = buildBondAnimate(skeletonData.animations, skelName(ref.skel));
 
 		sheet.push({
 			...ref,

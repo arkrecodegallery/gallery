@@ -1,10 +1,10 @@
-import { store } from "./state.svelte";
-import { Animate } from "$lib/core/animate";
+import type { Animate } from "$lib/core/animate";
 import { getEligibleAnimationNames } from "$lib/core/heroAnimations";
 import { getEligibleSkillAnimationNames } from "$lib/core/skillAnimations";
-import { getBondRule } from "$lib/core/bondRules";
+import { buildBondAnimate } from "$lib/core/bondAnimate";
 import { BondSequencer, type BondSequenceStep } from "$lib/core/bondSequencer";
 import { computeBarProgress } from "$lib/core/bondProgress";
+import type { ModelView } from "$lib/core/types";
 import type { AnimationState, SkeletonData } from "@esotericsoftware/spine-core";
 
 export class BondViewState {
@@ -29,53 +29,48 @@ export class BondViewState {
 		}
 	}
 
-	stageMap(skelName: string): Map<string, number> | undefined {
-		if (!store.skeletonData) {
+	stageMap(
+		skeletonData: SkeletonData | undefined,
+		view: ModelView,
+		skelName: string
+	): Map<string, number> | undefined {
+		if (!skeletonData) {
 			return undefined;
 		}
 
-		if (store.view === "hero" || store.view === "alt") {
+		if (view === "hero" || view === "alt") {
 			return this.namesToMap(
-				getEligibleAnimationNames(store.skeletonData.animations, skelName)
+				getEligibleAnimationNames(skeletonData.animations, skelName)
 			);
 		}
 
-		if (store.view === "skill") {
+		if (view === "skill") {
 			return this.namesToMap(
-				getEligibleSkillAnimationNames(store.skeletonData.animations)
+				getEligibleSkillAnimationNames(skeletonData.animations)
 			);
 		}
 
-		if (store.view !== "bond") {
+		if (view !== "bond") {
 			return undefined;
 		}
 
-		const rule = getBondRule(skelName);
-		if (rule.disable) {
-			return undefined;
-		}
-
-		return new Animate(store.skeletonData.animations, rule).stageByName;
+		return buildBondAnimate(skeletonData.animations, skelName).animate.stageByName;
 	}
 
 	private namesToMap(names: string[]): Map<string, number> {
 		return new Map(names.map((name, index) => [name, index]));
 	}
 
-	currentCheckboxAnimation(
-		animationState: AnimationState,
-		skelName: string
-	): string | undefined {
-		const rule = getBondRule(skelName);
-		if (rule.disable || this.sequencer.manualOverride) {
+	currentCheckboxAnimation(animationState: AnimationState): string | undefined {
+		if (this.sequencer.manualOverride) {
 			return undefined;
 		}
 
 		return animationState.getCurrent(0)?.animation?.name;
 	}
 
-	updatePlaybackProgress(animationState: AnimationState) {
-		if (store.view !== "bond") {
+	updatePlaybackProgress(animationState: AnimationState, view: ModelView) {
+		if (view !== "bond") {
 			return;
 		}
 

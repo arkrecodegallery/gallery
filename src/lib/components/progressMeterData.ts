@@ -1,7 +1,5 @@
 import type { ModelState } from "$lib/hooks/modelState.svelte";
 import type { ModelView } from "$lib/core/types";
-import { getBondRule } from "$lib/core/bondRules";
-import { skelName } from "$lib/core/skelName";
 import type { BondBar } from "$lib/core/bondProgress";
 
 export interface MeterData {
@@ -42,7 +40,7 @@ export function computeMeterData(
 			currentDot: -1,
 			bars: [{ animationName: "", loop: false }],
 			activeBarIndex: 0,
-			barProgress: modelState.skillBarProgress,
+			barProgress: modelState.skillView.barProgress,
 		};
 	}
 
@@ -69,13 +67,9 @@ function computeHeroMeterData(modelState: ModelState): MeterData {
 function computeBondMeterData(modelState: ModelState): MeterData {
 	const entry = modelState.getAbsoluteEntry();
 	const presentation = entry.bond?.[modelState.cycleIndex];
-	const rule =
-		presentation?.kind === "animated"
-			? getBondRule(skelName(presentation.bundle.skel))
-			: {};
 
 	const stillsActive = presentation?.kind === "stills";
-	const animatedActive = presentation?.kind === "animated" && !rule.disable;
+	const animatedActive = presentation?.kind === "animated";
 
 	const stageCount =
 		stillsActive && presentation?.kind === "stills"

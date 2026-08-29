@@ -4,8 +4,10 @@ import { computeMeterData } from "$lib/components/progressMeterData";
 
 function baseModelState(): any {
 	return {
-		getAbsoluteEntry: () => ({ id: "H999" }),
-		cycleIndex: 0,
+		heroSelection: {
+			getAbsoluteEntry: () => ({ id: "H999" }),
+			cycleIndex: 0,
+		},
 		skillView: { barProgress: 0 },
 		bond: {
 			stillsIndex: 0,
@@ -67,7 +69,7 @@ describe("computeMeterData", () => {
 
 	it("bond view with an active animated presentation reports its sequence bars", () => {
 		const state = baseModelState();
-		state.getAbsoluteEntry = () => ({
+		state.heroSelection.getAbsoluteEntry = () => ({
 			id: "H999",
 			bond: [{ kind: "animated", bundle: { skel: "A0999.skel", atlas: "A0999.atlas" } }],
 		});
@@ -90,7 +92,7 @@ describe("computeMeterData", () => {
 		// Previously manualOverride forced stageCount to 0, which wiped out
 		// the bottom dot row the moment a user clicked a checkbox.
 		const state = baseModelState();
-		state.getAbsoluteEntry = () => ({
+		state.heroSelection.getAbsoluteEntry = () => ({
 			id: "H999",
 			bond: [{ kind: "animated", bundle: { skel: "A0999.skel", atlas: "A0999.atlas" } }],
 		});
@@ -111,7 +113,7 @@ describe("computeMeterData", () => {
 
 	it("bond view with an active stills presentation reports one dot per image", () => {
 		const state = baseModelState();
-		state.getAbsoluteEntry = () => ({
+		state.heroSelection.getAbsoluteEntry = () => ({
 			id: "H999",
 			bond: [{ kind: "stills", images: ["a.png", "b.png", "c.png"] }],
 		});

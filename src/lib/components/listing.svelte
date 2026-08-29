@@ -47,7 +47,7 @@
 	);
 
 	function onclick(id: string) {
-		store.modelState.selectHeroById(id);
+		store.modelState.navigation.selectHeroById(id);
 		open = false;
 	}
 

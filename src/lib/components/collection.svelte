@@ -4,10 +4,10 @@
 	import Spinner from "./ui/spinner/spinner.svelte";
 
 	const image = $derived.by(() => {
-		const entry = store.modelState.getAbsoluteEntry();
+		const entry = store.modelState.heroSelection.getAbsoluteEntry();
 
 		if (store.view === "bond") {
-			const presentation = entry.bond?.[store.modelState.cycleIndex];
+			const presentation = entry.bond?.[store.modelState.heroSelection.cycleIndex];
 			if (presentation !== undefined && presentation.kind === "stills") {
 				return store.assetManager.path(
 					presentation.images[store.modelState.bond.stillsIndex]
@@ -16,7 +16,7 @@
 		} else if (store.view === "collection") {
 			if (entry.collection) {
 				return store.assetManager.path(
-					entry.collection[store.modelState.cycleIndex]
+					entry.collection[store.modelState.heroSelection.cycleIndex]
 				);
 			} else {
 				return undefined;

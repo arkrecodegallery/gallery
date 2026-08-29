@@ -19,7 +19,7 @@ export function persistTable(node: HTMLElement) {
 }
 
 function scrollToSelectedHero(table: HTMLElement) {
-	const index = store.modelState.absoluteHeroIndex;
+	const index = store.modelState.heroSelection.absoluteHeroIndex;
 	const row = table.querySelector<HTMLElement>(
 		`[data-row-index="${index}"]`
 	);

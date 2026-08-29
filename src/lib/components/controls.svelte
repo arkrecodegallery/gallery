@@ -17,13 +17,13 @@
 
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
-	const stageMap = $derived(store.modelState.animationStageMap());
+	const stageMap = $derived(store.modelState.frameSync.animationStageMap());
 	const skinDisabled = $derived(
 		store.view !== "hero" && store.view !== "alt",
 	);
 	const animationDisabled = $derived(store.view === "collection");
 	const stillsPresentation = $derived.by(() => {
-		const presentation = store.modelState.getBondPresentation();
+		const presentation = store.modelState.frameSync.getBondPresentation();
 		return presentation?.kind === "stills" ? presentation : undefined;
 	});
 
@@ -72,7 +72,7 @@
 			<DropdownMenu.Content>
 				<DropdownMenu.RadioGroup
 					bind:value={store.modelState.skinState.skin}
-					onValueChange={() => store.modelState.confirmManualSkinPick()}
+					onValueChange={() => store.modelState.input.confirmManualSkinPick()}
 				>
 					{#each skins as skin}
 						<DropdownMenu.RadioItem value={skin.name}>
@@ -98,7 +98,7 @@
 						<DropdownMenu.CheckboxItem
 							checked={i === store.modelState.bond.stillsIndex}
 							onCheckedChange={(checked) =>
-								checked && store.modelState.setStillsChecked(i)}
+								checked && store.modelState.input.setStillsChecked(i)}
 							closeOnSelect={false}
 						>
 							{fileName(image)}
@@ -109,9 +109,9 @@
 						{@const bar = stageBarClass(i)}
 						{@const gap = isBridgedGap(i)}
 						<DropdownMenu.CheckboxItem
-							checked={anim.name in store.modelState.animations}
+							checked={anim.name in store.modelState.checkboxAnimations.animations}
 							onCheckedChange={(checked) =>
-								store.modelState.setAnimationChecked(
+								store.modelState.input.setAnimationChecked(
 									anim.name,
 									checked,
 									shiftHeld,

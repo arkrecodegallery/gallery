@@ -15,15 +15,15 @@
 	}
 
 	function getCount(view: ModelView): number {
-		return getViewCount(view, store.modelState.getAbsoluteEntry());
+		return getViewCount(view, store.modelState.heroSelection.getAbsoluteEntry());
 	}
 
 	function getIndex(view: ModelView): number {
-		return getViewIndex(view, store.view, store.modelState.cycleIndex);
+		return getViewIndex(view, store.view, store.modelState.heroSelection.cycleIndex);
 	}
 
 	function switchView(view: ModelView) {
-		store.modelState.handleModelChange(getViewKey(view));
+		store.modelState.navigation.handleModelChange(getViewKey(view));
 	}
 </script>
 
@@ -33,7 +33,7 @@
 		: ''}"
 >
 	{#each TAB_VIEWS as view}
-		{@const disabled = store.modelState.viewDisabled(view)}
+		{@const disabled = store.modelState.heroSelection.viewDisabled(view)}
 		{@const name = VIEW_NAMES[view]}
 		{@const key = getKey(view)}
 		{@const count = getCount(view)}
@@ -82,7 +82,7 @@
 		: ''}"
 >
 	{#each TAB_VIEWS as view}
-		{@const disabled = store.modelState.viewDisabled(view)}
+		{@const disabled = store.modelState.heroSelection.viewDisabled(view)}
 		{@const count = getCount(view)}
 		{@const index = getIndex(view)}
 

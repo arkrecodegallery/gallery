@@ -33,10 +33,10 @@ describe("ModelState checkbox dispatch", () => {
 	it("skill view: setAnimationChecked updates both skillView and the shared animations record", () => {
 		store.view = "skill";
 
-		store.modelState.setAnimationChecked("20_Loop", true);
+		store.modelState.input.setAnimationChecked("20_Loop", true);
 
 		expect(store.modelState.skillView.skillActiveAnimationName).toBe("20_Loop");
-		expect(store.modelState.animations).toEqual({ "20_Loop": 0 });
+		expect(store.modelState.checkboxAnimations.animations).toEqual({ "20_Loop": 0 });
 	});
 
 	it("hero view: setAnimationChecked updates heroAnimation's active clip and the shared record, exclusive and additive", () => {
@@ -44,12 +44,15 @@ describe("ModelState checkbox dispatch", () => {
 		store.skeletonData = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
 		store.map = { H999: fakeEntry() };
 
-		store.modelState.setAnimationChecked("20_Loop", true);
+		store.modelState.input.setAnimationChecked("20_Loop", true);
 		expect(store.modelState.heroAnimation.currentClipName()).toBe("20_Loop");
-		expect(store.modelState.animations).toEqual({ "20_Loop": 0 });
+		expect(store.modelState.checkboxAnimations.animations).toEqual({ "20_Loop": 0 });
 
-		store.modelState.setAnimationChecked("04_Touch", true, true);
-		expect(store.modelState.animations).toEqual({ "20_Loop": 0, "04_Touch": 1 });
+		store.modelState.input.setAnimationChecked("04_Touch", true, true);
+		expect(store.modelState.checkboxAnimations.animations).toEqual({
+			"20_Loop": 0,
+			"04_Touch": 1,
+		});
 	});
 
 	it("bond view: setAnimationChecked flips manual override via the sequencer and updates the shared record", () => {
@@ -67,10 +70,10 @@ describe("ModelState checkbox dispatch", () => {
 			}),
 		};
 
-		store.modelState.setAnimationChecked("20_loop", true);
+		store.modelState.input.setAnimationChecked("20_loop", true);
 
 		expect(store.modelState.bond.manualOverride).toBe(true);
-		expect(store.modelState.animations).toEqual({ "20_loop": 0 });
+		expect(store.modelState.checkboxAnimations.animations).toEqual({ "20_loop": 0 });
 	});
 
 	it("advancing a bond stage automatically updates the shared animations record via syncFrame", () => {
@@ -88,15 +91,15 @@ describe("ModelState checkbox dispatch", () => {
 			}),
 		};
 
-		store.modelState.startBondAutoPlay();
-		store.modelState.advanceBondStage(); // -> stage 1 (20_loop)
+		store.modelState.frameSync.startBondAutoPlay();
+		store.modelState.frameSync.advanceBondStage(); // -> stage 1 (20_loop)
 
 		const animationState = {
 			getCurrent: (track: number) =>
 				track === 0 ? { animation: { name: "20_loop" }, trackTime: 0 } : undefined,
 		} as unknown as AnimationState;
-		store.modelState.syncFrame(animationState);
+		store.modelState.frameSync.syncFrame(animationState);
 
-		expect(store.modelState.animations).toEqual({ "20_loop": 0 });
+		expect(store.modelState.checkboxAnimations.animations).toEqual({ "20_loop": 0 });
 	});
 });

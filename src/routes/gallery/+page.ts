@@ -7,8 +7,8 @@ export const load = async () => {
 	store.map = await platform.loadMap();
 
 	const heroCount = Object.keys(store.map).length;
-	const index = store.modelState.absoluteHeroIndex;
+	const index = store.modelState.heroSelection.absoluteHeroIndex;
 	if (index < 0 || index >= heroCount) {
-		store.modelState.absoluteHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
 	}
 };

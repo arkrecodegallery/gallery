@@ -21,12 +21,12 @@ export class App implements SpineCanvasApp {
 	animation!: AnimationState;
 
 	loadAssets(canvas: SpineCanvas): void {
-		const entry = store.modelState.getAbsoluteEntry();
+		const entry = store.modelState.heroSelection.getAbsoluteEntry();
 		store.assetManager.loadModel(
 			canvas,
 			entry,
 			store.view,
-			store.modelState.cycleIndex,
+			store.modelState.heroSelection.cycleIndex,
 			(loading) => {
 				store.loading = loading;
 			}
@@ -65,7 +65,7 @@ export class App implements SpineCanvasApp {
 		this.animation = new AnimationState(animationStateData);
 		this.animation.addListener({
 			complete: (entry) =>
-				store.modelState.handleBondAnimationComplete(entry, this.animation),
+				store.modelState.frameSync.handleBondAnimationComplete(entry, this.animation),
 		});
 
 		this.setSkin();
@@ -78,17 +78,15 @@ export class App implements SpineCanvasApp {
 	}
 
 	setSkin() {
-		store.modelState.calculateSkin();
-		this.skeleton.setSkinByName(
-			store.modelState.getSkin(this.skeletonData)
-		);
+		store.modelState.skinState.calculateSkin(store.view, store.skeletonData);
+		this.skeleton.setSkinByName(store.modelState.skinState.getSkin());
 		this.skeleton.setSlotsToSetupPose();
 		this.skeleton.updateWorldTransform();
 	}
 
 	setAnimation() {
 		const seenTracks = new Set<number>();
-		store.modelState
+		store.modelState.frameSync
 			.getAnimation(this.skeletonData, this.animation, this.skeleton)
 			.forEach(({ trackIndex, animationName, loop }) => {
 				if (seenTracks.has(trackIndex)) {
@@ -120,15 +118,15 @@ export class App implements SpineCanvasApp {
 	}
 
 	update(canvas: SpineCanvas, delta: number) {
-		if (store.modelState.hasSkinUpdate()) {
+		if (store.modelState.updateFlags.hasSkinUpdate()) {
 			this.setSkin();
 		}
 
-		if (store.modelState.hasAnimationUpdate()) {
+		if (store.modelState.updateFlags.hasAnimationUpdate()) {
 			this.setAnimation();
 		}
 
-		if (store.modelState.hasModelUpdate()) {
+		if (store.modelState.updateFlags.hasModelUpdate()) {
 			this.reloadModel(canvas);
 		}
 
@@ -136,7 +134,7 @@ export class App implements SpineCanvasApp {
 		this.animation.apply(this.skeleton);
 		this.skeleton.updateWorldTransform();
 
-		store.modelState.syncFrame(this.animation);
+		store.modelState.frameSync.syncFrame(this.animation);
 	}
 
 	async reloadModel(canvas: SpineCanvas) {

@@ -6,8 +6,8 @@
 	// update the heroIndex when filteredHeroData changes
 	$effect(() => {
 		if (store.filteredHeroData.length > 0) {
-			const entry = store.modelState.getAbsoluteEntry();
-			store.modelState.relativeHeroIndex =
+			const entry = store.modelState.heroSelection.getAbsoluteEntry();
+			store.modelState.heroSelection.relativeHeroIndex =
 				store.filteredHeroData.findIndex((h) => h.id === entry.id);
 		}
 	});
@@ -16,11 +16,11 @@
 	$effect(() => {
 		localStorage.setItem(
 			"absoluteHeroIndex",
-			JSON.stringify($state.snapshot(store.modelState.absoluteHeroIndex))
+			JSON.stringify($state.snapshot(store.modelState.heroSelection.absoluteHeroIndex))
 		);
 		localStorage.setItem(
 			"relativeHeroIndex",
-			JSON.stringify($state.snapshot(store.modelState.relativeHeroIndex))
+			JSON.stringify($state.snapshot(store.modelState.heroSelection.relativeHeroIndex))
 		);
 	});
 

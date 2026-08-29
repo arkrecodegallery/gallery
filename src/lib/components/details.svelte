@@ -7,8 +7,8 @@
 	import { zodiacIcons, starDisplay } from "./detailsFormat";
 
 	let entry = $derived.by(() => {
-		() => store.modelState.absoluteHeroIndex;
-		return Object.values(store.map)[store.modelState.absoluteHeroIndex];
+		() => store.modelState.heroSelection.absoluteHeroIndex;
+		return Object.values(store.map)[store.modelState.heroSelection.absoluteHeroIndex];
 	});
 
 	const stars = $derived(starDisplay(entry));

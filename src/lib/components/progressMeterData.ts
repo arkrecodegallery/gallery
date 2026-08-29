@@ -65,8 +65,8 @@ function computeHeroMeterData(modelState: ModelState): MeterData {
 }
 
 function computeBondMeterData(modelState: ModelState): MeterData {
-	const entry = modelState.getAbsoluteEntry();
-	const presentation = entry.bond?.[modelState.cycleIndex];
+	const entry = modelState.heroSelection.getAbsoluteEntry();
+	const presentation = entry.bond?.[modelState.heroSelection.cycleIndex];
 
 	const stillsActive = presentation?.kind === "stills";
 	const animatedActive = presentation?.kind === "animated";

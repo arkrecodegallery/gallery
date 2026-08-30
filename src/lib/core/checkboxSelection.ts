@@ -41,3 +41,12 @@ export function reconcileSingleCheckbox(
 
 	return { [playingName]: 0 };
 }
+
+/** Background tracks (bond's single latched clip, skill's bg clip set) show checked without living in `animations`. */
+export function isAnimationChecked(
+	name: string,
+	animations: Record<string, number>,
+	backgroundAnimationNames: Iterable<string> = []
+): boolean {
+	return name in animations || [...backgroundAnimationNames].includes(name);
+}

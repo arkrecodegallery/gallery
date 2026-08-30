@@ -6,6 +6,7 @@ import type { HeroViewState } from "./heroViewState.svelte";
 import type { SkillViewState } from "./skillViewState.svelte";
 import type { HeroSelection } from "./heroSelection.svelte";
 import type { CheckboxAnimationState } from "./checkboxAnimations.svelte";
+import { BOND_BACKGROUND_TRACK } from "$lib/core/bondBackground";
 import type { Animation, BondPresentation } from "$lib/core/types";
 import type {
 	AnimationState,
@@ -58,6 +59,7 @@ export class ModelFrameSync {
 		this.syncHeroCheckboxState();
 		this.syncSkillCheckboxState(animationState);
 		this.updateBondPlaybackProgress(animationState);
+		this.updateBondBackground(animationState);
 		this.updateHeroAnimationProgress(animationState);
 		this.updateSkillPlaybackProgress(animationState);
 	}
@@ -121,6 +123,31 @@ export class ModelFrameSync {
 
 	private updateBondPlaybackProgress(animationState: AnimationState) {
 		this.bond.updatePlaybackProgress(animationState, store.view);
+	}
+
+	// mutates the background track directly, independent of the main
+	// track's own clear-and-rebuild cycle, so it's never restarted by
+	// unrelated stage/checkbox changes - only when its own clip changes
+	private updateBondBackground(animationState: AnimationState) {
+		if (store.view !== "bond") return;
+		// a checkbox multi-select can claim this same track index this frame -
+		// getAnimation() already set/cleared it, don't fight over ownership
+		if (this.bond.backgroundTrackClaimedByMain) return;
+
+		const suppressed = Object.keys(this.checkboxAnimations.animations).length > 1;
+		const changed = this.bond.updateBackgroundTrack(
+			animationState,
+			store.skeletonData,
+			suppressed
+		);
+		if (!changed) return;
+
+		const name = this.bond.backgroundAnimationName;
+		if (name) {
+			animationState.setAnimation(BOND_BACKGROUND_TRACK, name, true);
+		} else {
+			animationState.clearTrack(BOND_BACKGROUND_TRACK);
+		}
 	}
 
 	private updateHeroAnimationProgress(animationState: AnimationState) {

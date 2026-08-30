@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
 	applyCheckboxSelection,
+	isAnimationChecked,
 	reconcileSingleCheckbox,
 } from "$lib/core/checkboxSelection";
 
@@ -77,5 +78,34 @@ describe("reconcileSingleCheckbox", () => {
 	it("a leftover multi-key additive selection collapses to a single checked box once something else takes over", () => {
 		const result = reconcileSingleCheckbox({ a: 0, b: 1, c: 2 }, "b", true);
 		expect(result).toEqual({ b: 0 });
+	});
+});
+
+describe("isAnimationChecked", () => {
+	it("regression: the active bond background clip shows checked without being in `animations`", () => {
+		expect(isAnimationChecked("90_BG_Open", {}, ["90_BG_Open"])).toBe(true);
+	});
+
+	it("a name present in `animations` shows checked regardless of the background clip", () => {
+		expect(isAnimationChecked("20_loop_ani", { "20_loop_ani": 0 }, ["90_BG_Open"])).toBe(
+			true
+		);
+	});
+
+	it("a name that is neither selected nor the active background shows unchecked", () => {
+		expect(isAnimationChecked("30_finish_ani", { "20_loop_ani": 0 }, ["90_BG_Open"])).toBe(
+			false
+		);
+	});
+
+	it("no active background (suppressed or none) never marks anything checked on its behalf", () => {
+		expect(isAnimationChecked("90_BG_Open", {}, [])).toBe(false);
+		expect(isAnimationChecked("90_BG_Open", {})).toBe(false);
+	});
+
+	it("regression: skill view's multiple bg clips (90_BG + 90_Sparkle) both show checked", () => {
+		expect(isAnimationChecked("90_BG", {}, ["90_BG", "90_Sparkle"])).toBe(true);
+		expect(isAnimationChecked("90_Sparkle", {}, ["90_BG", "90_Sparkle"])).toBe(true);
+		expect(isAnimationChecked("04_Touch", {}, ["90_BG", "90_Sparkle"])).toBe(false);
 	});
 });

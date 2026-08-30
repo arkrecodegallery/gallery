@@ -14,6 +14,7 @@
 		isBridgedGap as isBridgedGapAt,
 		stageBarClass as stageBarClassAt,
 	} from "./controlsDisplay";
+	import { isAnimationChecked } from "$lib/core/checkboxSelection";
 
 	const skins = $derived(store.skeletonData?.skins ?? []);
 	const animations = $derived(store.skeletonData?.animations ?? []);
@@ -28,6 +29,13 @@
 	});
 
 	const displayStages = $derived(computeDisplayStages(stageMap, animations));
+	const backgroundAnimationNames = $derived(
+		store.view === "skill"
+			? store.modelState.skillView.bgAnimationNames
+			: store.modelState.bond.backgroundAnimationName
+				? [store.modelState.bond.backgroundAnimationName]
+				: [],
+	);
 
 	function stageBarClass(index: number): string | undefined {
 		return stageBarClassAt(displayStages, index);
@@ -109,7 +117,11 @@
 						{@const bar = stageBarClass(i)}
 						{@const gap = isBridgedGap(i)}
 						<DropdownMenu.CheckboxItem
-							checked={anim.name in store.modelState.checkboxAnimations.animations}
+							checked={isAnimationChecked(
+								anim.name,
+								store.modelState.checkboxAnimations.animations,
+								backgroundAnimationNames,
+							)}
 							onCheckedChange={(checked) =>
 								store.modelState.input.setAnimationChecked(
 									anim.name,

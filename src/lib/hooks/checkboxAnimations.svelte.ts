@@ -24,6 +24,10 @@ export class CheckboxAnimationState {
 		);
 	}
 
+	clear() {
+		this.animations = {};
+	}
+
 	manualAnimations(): Animation[] {
 		return Object.entries(this.animations).map(([animationName, trackIndex]) => ({
 			animationName,

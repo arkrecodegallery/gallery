@@ -1,5 +1,6 @@
 import type { BondViewState } from "./bondViewState.svelte";
 import { buildBondAnimate } from "$lib/core/bondAnimate";
+import { BOND_BACKGROUND_TRACK, clearStaleBondTracks } from "$lib/core/bondBackground";
 import type { Animation } from "$lib/core/types";
 import type {
 	AnimationState,
@@ -114,6 +115,8 @@ export class BondSequenceActions {
 			this.state.sequencer.reset();
 			this.state.autoPlay = false;
 			this.state.frozen = false;
+			this.state.backgroundAnimationName = undefined;
+			this.state.backgroundTrackClaimedByMain = false;
 		}
 
 		if (this.state.frozen) {
@@ -124,23 +127,36 @@ export class BondSequenceActions {
 			return [];
 		}
 
-		animationState.clearTracks();
-		skeleton.setToSetupPose();
-
 		if (isNewSkeleton) {
-			const { animate } = buildBondAnimate(skeletonData.animations, skelName);
+			const { rule, animate } = buildBondAnimate(skeletonData.animations, skelName);
 			this.state.sequencer.enterStage(animate, 0);
 			this.state.syncMeta(animate);
+			this.state.currentBondRule = rule;
+			this.state.defaultBackgroundName = animate.background[0]?.name;
 		}
 
-		if (this.state.sequencer.manualOverride) {
-			return manualAnimations();
-		}
+		const mainEntries = this.state.sequencer.manualOverride
+			? manualAnimations()
+			: this.state.sequencer.sequence.map((step) => ({
+					trackIndex: 0,
+					animationName: step.animationName,
+					loop: step.loop,
+				}));
 
-		return this.state.sequencer.sequence.map((step) => ({
-			trackIndex: 0,
-			animationName: step.animationName,
-			loop: step.loop,
-		}));
+		// the background track is normally owned by ModelFrameSync.updateBondBackground,
+		// which mutates it directly and independently of this rebuild - kept out of the
+		// clear here whenever it's actively playing, so it survives unrelated stage/
+		// checkbox changes uninterrupted. A checkbox multi-select can also claim that
+		// same index though (backgroundTrackClaimedByMain), in which case it's just a
+		// normal main-track entry and ModelFrameSync must leave it alone this frame.
+		const keepIndices = mainEntries.map((entry) => entry.trackIndex);
+		this.state.backgroundTrackClaimedByMain = keepIndices.includes(BOND_BACKGROUND_TRACK);
+		if (this.state.backgroundAnimationName !== undefined) {
+			keepIndices.push(BOND_BACKGROUND_TRACK);
+		}
+		clearStaleBondTracks(animationState, keepIndices);
+		skeleton.setToSetupPose();
+
+		return mainEntries;
 	}
 }

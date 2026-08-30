@@ -1,6 +1,7 @@
 import { findIdleAnimationName } from "$lib/core/idleAnimation";
 import { getEligibleAnimationNames } from "$lib/core/heroAnimations";
 import { computeBarProgress } from "$lib/core/bondProgress";
+import { DEFAULT_MIX_DURATION } from "$lib/core/animationMix";
 import type { Animation } from "$lib/core/types";
 import type {
 	AnimationState,
@@ -148,7 +149,7 @@ export class HeroViewState {
 					return;
 				}
 
-				animationState.setEmptyAnimation(this.activeTrackIndex, 0);
+				animationState.setEmptyAnimation(this.activeTrackIndex, DEFAULT_MIX_DURATION);
 				const idleTrack = animationState.getCurrent(0);
 				if (idleTrack) {
 					idleTrack.trackTime = 0;

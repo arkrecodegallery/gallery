@@ -14,6 +14,7 @@ import {
 } from "@esotericsoftware/spine-webgl";
 import { store } from "$lib/hooks/state.svelte";
 import { CameraController } from "$lib/core/cameraController";
+import { DEFAULT_MIX_DURATION } from "$lib/core/animationMix";
 
 export class App implements SpineCanvasApp {
 	skeletonData!: SkeletonData;
@@ -64,6 +65,7 @@ export class App implements SpineCanvasApp {
 
 	configureScene(canvas: SpineCanvas) {
 		const animationStateData = new AnimationStateData(this.skeletonData);
+		animationStateData.defaultMix = DEFAULT_MIX_DURATION;
 		this.animation = new AnimationState(animationStateData);
 		this.animation.addListener({
 			complete: (entry) =>

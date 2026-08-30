@@ -92,6 +92,7 @@ export class ModelInputHandler {
 					if (presentation.kind === "stills") {
 						this.bondActions.advanceStills(presentation.images.length);
 					} else if (presentation.kind === "animated") {
+						this.checkboxAnimations.clear();
 						this.applyBondUpdate(() => this.frameSync.advanceBondStage());
 					}
 				}

@@ -1,5 +1,12 @@
 export type BondRuleOverride = "stop" | "transition" | "variant" | "bypass";
 
+export interface BondRuleBackground {
+	/** Raw animation name to loop on the background track by default, and again whenever the sequence cycles back to stage 0. */
+	base: string;
+	/** Raw background animation name -> raw main-track animation name whose start triggers switching to it. */
+	progress?: Record<string, string>;
+}
+
 export interface BondRule {
 	/** Exact raw animation names to drop before grouping. */
 	skip?: string[];
@@ -9,6 +16,8 @@ export interface BondRule {
 	overrides?: Record<string, BondRuleOverride>;
 	/** Raw animation name -> raw name it should be moved to immediately before, reordering actual playback (not just classification). */
 	reorderBefore?: Record<string, string>;
+	/** Overrides the default single "90_bg" loop with a base clip plus progress-triggered switches. */
+	background?: BondRuleBackground;
 }
 
 const rules: Record<string, BondRule> = {
@@ -30,6 +39,9 @@ const rules: Record<string, BondRule> = {
 			"BG_Light_Off",
 			"BG_Light_On",
 		],
+		background: {
+			base: "BG_Dust",
+		},
 	},
 	A0005: {
 		rename: {
@@ -189,6 +201,9 @@ const rules: Record<string, BondRule> = {
 			"01_Loop_ani1": "01_Loop_ani_Next",
 			"01_Loop_ani2": "01_Loop_ani_Next_Next",
 		},
+		background: {
+			base: "sky",
+		},
 	},
 	A0028: {
 		overrides: {
@@ -258,6 +273,19 @@ const rules: Record<string, BondRule> = {
 			"02_Idle_ani": "stop",
 		},
 	},
+	A0131: {
+		background: {
+			base: "90_Sweat_ani",
+		},
+	},
+	A0134: {
+		background: {
+			base: "90_BG_cold",
+			progress: {
+				"90_BG_hot": "20_Loop_ani",
+			},
+		},
+	},
 	A0139: {
 		skip: ["21_Loop_ani2", "22_Loop_ani2", "22_Loop_ani3"],
 	},
@@ -266,11 +294,22 @@ const rules: Record<string, BondRule> = {
 			"01_Idle_ani": "variant",
 			"10_Idle_ani": "stop",
 		},
+		background: {
+			base: "90_Oil_Flow",
+			progress: {
+				"90_Sweat_Flow": "10_Idle_ani",
+			},
+		},
 	},
 	A0145: {
 		rename: {
 			"01_Idle_hand_ani": "01_idle_ani",
 			"41_End_ani": "40_end_ani",
+		},
+	},
+	A0159: {
+		background: {
+			base: "90_BG_ani",
 		},
 	},
 	A0168: {
@@ -284,6 +323,9 @@ const rules: Record<string, BondRule> = {
 		skip: ["BG"],
 		overrides: {
 			"10_Idle_ani": "stop",
+		},
+		background: {
+			base: "BG",
 		},
 	},
 	A0174: {
@@ -380,6 +422,9 @@ const rules: Record<string, BondRule> = {
 		rename: {
 			"01_Idle_ani": "00_Idle_ani",
 		},
+		background: {
+			base: "BG",
+		},
 	},
 	A0260: {
 		skip: ["10_Idle_slap_ani"],
@@ -429,6 +474,12 @@ const rules: Record<string, BondRule> = {
 			"06_Hand_ani": "variant",
 			"41_End_ani": "variant",
 		},
+		background: {
+			base: "91_BG",
+			progress: {
+				"90_BG": "19_Loop_ani",
+			},
+		},
 	},
 	A0302: {
 		overrides: {
@@ -443,6 +494,14 @@ const rules: Record<string, BondRule> = {
 		// they used l instead of I fml
 		overrides: {
 			"01_ldle_Hand_ani": "stop",
+		},
+		background: {
+			base: "90_BG_Start",
+			progress: {
+				"90_BG_Open": "20_Loop_ani",
+				"91_BG_Fast": "23_Loop_ani",
+				"92_BG_Stop": "30_Finish_ani",
+			},
 		},
 	},
 	A0311: {

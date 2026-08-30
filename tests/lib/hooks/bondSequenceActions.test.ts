@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Animation, SkeletonData } from "@esotericsoftware/spine-core";
 import { BondViewState } from "$lib/hooks/bondViewState.svelte";
 import { BondSequenceActions } from "$lib/hooks/bondSequenceActions";
+import { BOND_BACKGROUND_TRACK } from "$lib/core/bondBackground";
 
 function anims(names: string[]): Animation[] {
 	return names.map((name) => ({ name }) as Animation);
@@ -9,6 +10,24 @@ function anims(names: string[]): Animation[] {
 
 function fakeSkeleton(names: string[]): SkeletonData {
 	return { animations: anims(names) } as SkeletonData;
+}
+
+/** trackCount controls how many indices `clearStaleBondTracks` will scan through. */
+function fakeAnimationState(
+	currentByTrack: Record<number, { timeScale: number }> = {},
+	trackCount = 1
+) {
+	const clearTrackCalls: number[] = [];
+	return {
+		tracks: new Array(trackCount).fill(null),
+		clearTrack: (i: number) => {
+			clearTrackCalls.push(i);
+		},
+		get clearTrackCalls() {
+			return clearTrackCalls;
+		},
+		getCurrent: (trackIndex: number) => currentByTrack[trackIndex],
+	};
 }
 
 describe("BondSequenceActions", () => {
@@ -75,7 +94,7 @@ describe("BondSequenceActions", () => {
 		const state = new BondViewState();
 		const actions = new BondSequenceActions(state);
 		const skeleton = { setToSetupPose: () => {} } as any;
-		const animationState = { clearTracks: () => {} } as any;
+		const animationState = fakeAnimationState() as any;
 
 		actions.getAnimation(skeletonData, animationState, skeleton, "H999", () => []);
 		state.sequencer.manualOverride = true;
@@ -98,7 +117,7 @@ describe("BondSequenceActions", () => {
 		const state = new BondViewState();
 		const actions = new BondSequenceActions(state);
 		const skeleton = { setToSetupPose: () => {} } as any;
-		const animationState = { clearTracks: () => {} } as any;
+		const animationState = fakeAnimationState() as any;
 
 		const result = actions.getAnimation(
 			skeletonData,
@@ -147,20 +166,7 @@ describe("BondSequenceActions", () => {
 	});
 
 	describe("regression: unchecking a bond animation freezes the current frame", () => {
-		function fakeAnimationState(currentByTrack: Record<number, { timeScale: number }>) {
-			let clearTracksCalls = 0;
-			return {
-				get clearTracksCalls() {
-					return clearTracksCalls;
-				},
-				clearTracks: () => {
-					clearTracksCalls += 1;
-				},
-				getCurrent: (trackIndex: number) => currentByTrack[trackIndex],
-			};
-		}
-
-		it("getAnimation freezes track 0's timeScale, returns no animations, and skips clearTracks", () => {
+		it("getAnimation freezes track 0's timeScale, returns no animations, and skips clearing tracks", () => {
 			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
 			const state = new BondViewState();
 			const actions = new BondSequenceActions(state);
@@ -176,7 +182,7 @@ describe("BondSequenceActions", () => {
 			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", true);
 			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
 
-			const clearTracksCallsBefore = animationState.clearTracksCalls;
+			const clearCallsBefore = animationState.clearTrackCalls.length;
 			const result = actions.getAnimation(
 				skeletonData,
 				animationState as any,
@@ -187,7 +193,7 @@ describe("BondSequenceActions", () => {
 
 			expect(result).toEqual([]);
 			expect(track0.timeScale).toBe(0);
-			expect(animationState.clearTracksCalls).toBe(clearTracksCallsBefore);
+			expect(animationState.clearTrackCalls.length).toBe(clearCallsBefore);
 		});
 
 		it("stays frozen across repeated getAnimation calls until q/e/checkbox is pressed", () => {
@@ -203,7 +209,7 @@ describe("BondSequenceActions", () => {
 			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
 
 			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
-			const clearTracksCallsBefore = animationState.clearTracksCalls;
+			const clearCallsBefore = animationState.clearTrackCalls.length;
 			const result = actions.getAnimation(
 				skeletonData,
 				animationState as any,
@@ -213,7 +219,7 @@ describe("BondSequenceActions", () => {
 			);
 
 			expect(result).toEqual([]);
-			expect(animationState.clearTracksCalls).toBe(clearTracksCallsBefore);
+			expect(animationState.clearTrackCalls.length).toBe(clearCallsBefore);
 		});
 
 		it("advanceStage (e) unfreezes and resumes the normal sequence", () => {
@@ -231,7 +237,9 @@ describe("BondSequenceActions", () => {
 			actions.advanceStage(skeletonData, "H999");
 			expect(state.frozen).toBe(false);
 
-			const clearTracksCallsBefore = animationState.clearTracksCalls;
+			// track 0 is reused (not cleared first) by the resumed sequence -
+			// nothing stale to clear here, so no extra clearTrack calls either
+			const clearCallsBefore = animationState.clearTrackCalls.length;
 			const result = actions.getAnimation(
 				skeletonData,
 				animationState as any,
@@ -240,7 +248,7 @@ describe("BondSequenceActions", () => {
 				() => []
 			);
 			expect(result.length).toBeGreaterThan(0);
-			expect(animationState.clearTracksCalls).toBe(clearTracksCallsBefore + 1);
+			expect(animationState.clearTrackCalls.length).toBe(clearCallsBefore);
 		});
 
 		it("startAutoPlay (q) unfreezes and resumes auto-play", () => {
@@ -292,6 +300,79 @@ describe("BondSequenceActions", () => {
 				() => []
 			);
 			expect(state.frozen).toBe(false);
+		});
+	});
+
+	describe("regression: the background track survives unrelated stage/checkbox changes", () => {
+		it("preserves the background track across advanceStage (e) once it's actively playing", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+			const skeleton = { setToSetupPose: () => {} } as any;
+			const animationState = fakeAnimationState({}, 2);
+
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+			// as if ModelFrameSync.updateBondBackground had already started it playing
+			state.backgroundAnimationName = "90_bg";
+
+			const clearCallsBefore = animationState.clearTrackCalls.length;
+			actions.advanceStage(skeletonData, "H999");
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+
+			// only inspect calls made after backgroundAnimationName went live -
+			// the earlier setup call may have cleared it while nothing was playing yet
+			const newClearCalls = animationState.clearTrackCalls.slice(clearCallsBefore);
+			expect(newClearCalls).not.toContain(BOND_BACKGROUND_TRACK);
+			expect(newClearCalls.length).toBe(0);
+		});
+
+		it("regression: a leftover shift-selected track is cleared once it drops out of the checkbox selection", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+			const skeleton = { setToSetupPose: () => {} } as any;
+			// index 2 simulates a third shift-selected checkbox track that's no
+			// longer part of this call's (shrunk) manual selection; no background
+			// clip is active here, so index 1 is fair game too, not just index 2
+			const animationState = fakeAnimationState({}, 3);
+
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+			state.sequencer.manualOverride = true;
+
+			actions.getAnimation(
+				skeletonData,
+				animationState as any,
+				skeleton,
+				"H999",
+				() => [{ trackIndex: 0, animationName: "20_loop", loop: true }]
+			);
+
+			expect(animationState.clearTrackCalls).toContain(2);
+			expect(animationState.clearTrackCalls).toContain(BOND_BACKGROUND_TRACK);
+		});
+
+		it("marks the background track as claimed by main when a checkbox multi-select occupies it", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+			const skeleton = { setToSetupPose: () => {} } as any;
+			const animationState = fakeAnimationState({}, 2);
+
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+			state.sequencer.manualOverride = true;
+
+			actions.getAnimation(
+				skeletonData,
+				animationState as any,
+				skeleton,
+				"H999",
+				() => [
+					{ trackIndex: 0, animationName: "20_loop", loop: true },
+					{ trackIndex: BOND_BACKGROUND_TRACK, animationName: "40_end", loop: true },
+				]
+			);
+
+			expect(state.backgroundTrackClaimedByMain).toBe(true);
 		});
 	});
 });

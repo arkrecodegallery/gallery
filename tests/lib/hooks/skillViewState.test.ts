@@ -142,6 +142,29 @@ describe("SkillViewState", () => {
 		).toBe("00_Idle");
 	});
 
+	it("regression: bgAnimationNames tracks every eligible bg clip so they can show checked in the UI", () => {
+		const skeleton = fakeSkeleton(["00_Idle", "90_BG", "90_Sparkle", "04_Touch"]);
+		const state = new SkillViewState();
+		const animationState = new FakeAnimationState();
+
+		expect(state.bgAnimationNames).toEqual([]);
+
+		state.getAnimation(skeleton, animationState as unknown as AnimationState);
+
+		expect(state.bgAnimationNames).toEqual(["90_BG", "90_Sparkle"]);
+	});
+
+	it("regression: bgAnimationNames stays populated through a touch one-shot, not just the initial call", () => {
+		const skeleton = fakeSkeleton(["00_Idle", "90_BG", "04_Touch"]);
+		const state = new SkillViewState();
+		const animationState = new FakeAnimationState();
+
+		state.requestTouch();
+		state.getAnimation(skeleton, animationState as unknown as AnimationState);
+
+		expect(state.bgAnimationNames).toEqual(["90_BG"]);
+	});
+
 	it("resets active state when the skeleton changes, but not on repeat calls with the same one", () => {
 		const skeleton1 = fakeSkeleton(["00_Idle"]);
 		const skeleton2 = fakeSkeleton(["00_Idle"]);

@@ -4,6 +4,8 @@ import { getEligibleSkillAnimationNames } from "$lib/core/skillAnimations";
 import { buildBondAnimate } from "$lib/core/bondAnimate";
 import { BondSequencer, type BondSequenceStep } from "$lib/core/bondSequencer";
 import { computeBarProgress } from "$lib/core/bondProgress";
+import { isKnownBackgroundClip, resolveBackgroundAnimation } from "$lib/core/bondBackground";
+import type { BondRule } from "$lib/core/bondRules";
 import type { ModelView } from "$lib/core/types";
 import type { AnimationState, SkeletonData } from "@esotericsoftware/spine-core";
 
@@ -20,6 +22,34 @@ export class BondViewState {
 
 	sequencer = new BondSequencer();
 	lastSkeletonData?: SkeletonData;
+
+	currentBondRule?: BondRule;
+	defaultBackgroundName?: string;
+	backgroundAnimationName?: string = $state(undefined);
+	// true while the background track index is actually holding a checkbox
+	// multi-select clip this call, so ModelFrameSync must not touch it
+	backgroundTrackClaimedByMain = false;
+
+	updateBackgroundTrack(
+		animationState: AnimationState,
+		skeletonData: SkeletonData | undefined,
+		suppressed: boolean
+	): boolean {
+		const resolved = resolveBackgroundAnimation(
+			this.currentBondRule ?? {},
+			this.defaultBackgroundName,
+			animationState.getCurrent(0)?.animation?.name,
+			this.backgroundAnimationName,
+			suppressed,
+			this.sequencer.stageIndex === 0
+		);
+		const next = isKnownBackgroundClip(resolved, skeletonData) ? resolved : undefined;
+		if (next === this.backgroundAnimationName) {
+			return false;
+		}
+		this.backgroundAnimationName = next;
+		return true;
+	}
 
 	syncMeta(animate: Animate) {
 		this.stageIndex = this.sequencer.stageIndex;

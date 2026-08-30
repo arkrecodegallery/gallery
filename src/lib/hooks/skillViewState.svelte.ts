@@ -31,6 +31,7 @@ export class SkillViewState {
 	skillActiveTrackIndex = 0;
 	skillActiveAnimationName?: string;
 	barProgress: number = $state(0);
+	bgAnimationNames: string[] = $state([]);
 
 	private lastSkeletonData?: SkeletonData;
 
@@ -108,6 +109,7 @@ export class SkillViewState {
 		const beforeBg = animations.length;
 		this.tryAddAnimations(animations, POSSIBLE_BG_NAMES, skeletonData);
 		const bgAnimations = animations.slice(beforeBg);
+		this.bgAnimationNames = bgAnimations.map((a) => a.animationName);
 
 		if (this.touch || this.cutScene) {
 			const possible = this.touch ? TOUCH_NAMES : CUTSCENE_NAMES;

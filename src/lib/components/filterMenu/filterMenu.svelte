@@ -4,7 +4,7 @@
 	import { Toggle } from "$lib/components/ui/toggle/index.js";
 	import Icon from "@iconify/svelte";
 	import type { Table, Column } from "@tanstack/table-core";
-	import Input from "./ui/input/input.svelte";
+	import Input from "../ui/input/input.svelte";
 	import { store } from "$lib/hooks/state.svelte";
 	import { onMount } from "svelte";
 	import { persistFilterMenuState } from "./filterMenuState";

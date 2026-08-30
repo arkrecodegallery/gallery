@@ -1,6 +1,6 @@
 import { type ColumnDef } from "@tanstack/table-core";
 import type { Snippet } from "svelte";
-import { renderSnippet } from "./ui/data-table";
+import { renderSnippet } from "../ui/data-table";
 import { fileName } from "$lib/utils";
 import { imperialHeight, imperialWeight } from "$lib/core/format";
 import { nonEmptyFilterFn } from "./tableFilters";

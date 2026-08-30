@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { store } from "$lib/hooks/state.svelte";
 	import * as Kbd from "$lib/components/ui/kbd/index.js";
-	import Key from "./key.svelte";
+	import Key from "../key.svelte";
 	import { keybinds } from "$lib/core/keybinds.svelte";
 	import { imperialHeight, imperialWeight, prettyBirthday } from "$lib/core/format";
 	import { zodiacIcons, starDisplay } from "./detailsFormat";

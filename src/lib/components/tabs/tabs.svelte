@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { ModelView } from "$lib/core/types";
 	import { store } from "$lib/hooks/state.svelte";
-	import Key from "./key.svelte";
+	import Key from "../key.svelte";
 	import {
 		TAB_VIEWS,
 		VIEW_NAMES,

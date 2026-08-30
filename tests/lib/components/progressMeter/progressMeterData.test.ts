@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ModelState } from "$lib/hooks/modelState.svelte";
-import { computeMeterData } from "$lib/components/progressMeterData";
+import { computeMeterData } from "$lib/components/progressMeter/progressMeterData";
 
 function baseModelState(): any {
 	return {

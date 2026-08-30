@@ -5,9 +5,9 @@
 	import * as Kbd from "$lib/components/ui/kbd/index.js";
 	import Select from "$lib/components/select.svelte";
 	import * as DropdownMenu from "$lib/components/ui/dropdown-menu/index.js";
-	import { Button } from "./ui/button";
+	import { Button } from "../ui/button";
 	import { ClapperboardIcon, ShirtIcon } from "@lucide/svelte";
-	import ProgressMeter from "$lib/components/progress-meter.svelte";
+	import ProgressMeter from "$lib/components/progressMeter/progressMeter.svelte";
 	import { fileName } from "$lib/utils";
 	import {
 		computeDisplayStages,

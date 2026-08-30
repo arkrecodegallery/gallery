@@ -11,7 +11,7 @@
 		FlexRender,
 	} from "$lib/components/ui/data-table/index.js";
 	import * as Table from "$lib/components/ui/table/index.js";
-	import FilterMenu from "./filterMenu.svelte";
+	import FilterMenu from "./filterMenu/filterMenu.svelte";
 	import { store } from "$lib/hooks/state.svelte";
 
 	type DataTableProps<TData, TValue> = {

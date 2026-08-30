@@ -1,18 +1,18 @@
 <script lang="ts">
 	import { store } from "$lib/hooks/state.svelte";
 	import { type ColumnDef } from "@tanstack/table-core";
-	import DataTable from "./data-table.svelte";
+	import DataTable from "../dataTable.svelte";
 	import * as Dialog from "$lib/components/ui/dialog/index";
-	import { Button } from "./ui/button/index";
+	import { Button } from "../ui/button/index";
 	import { addKeydownListener } from "$lib/core/keybinds.svelte";
 	import { clearAllFilters } from "./tableFilters";
 	import { buildHeroColumns } from "./listingColumns";
 	import { persistTable } from "./listingTableDom";
-	import Key from "./key.svelte";
+	import Key from "../key.svelte";
 	import Icon from "@iconify/svelte";
 	import { onMount } from "svelte";
 	import { keybinds } from "$lib/core/keybinds.svelte";
-	import Toggle from "./ui/toggle/toggle.svelte";
+	import Toggle from "../ui/toggle/toggle.svelte";
 	import type { Entry } from "$lib/core/types";
 	import { goto } from "$app/navigation";
 

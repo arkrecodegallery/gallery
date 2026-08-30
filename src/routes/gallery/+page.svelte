@@ -3,10 +3,10 @@
 	import { SpineCanvas } from "@esotericsoftware/spine-webgl";
 	import { App } from "$lib/core/app";
 	import { store } from "$lib/hooks/state.svelte";
-	import Details from "$lib/components/details.svelte";
-	import Tabs from "$lib/components/tabs.svelte";
-	import Controls from "$lib/components/controls.svelte";
-	import Table from "$lib/components/listing.svelte";
+	import Details from "$lib/components/details/details.svelte";
+	import Tabs from "$lib/components/tabs/tabs.svelte";
+	import Controls from "$lib/components/controls/controls.svelte";
+	import Table from "$lib/components/listing/listing.svelte";
 	import Collection from "$lib/components/collection.svelte";
 	import Effects from "$lib/hooks/effects.svelte";
 

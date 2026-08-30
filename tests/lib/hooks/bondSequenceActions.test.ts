@@ -25,6 +25,33 @@ describe("BondSequenceActions", () => {
 		expect(state.stageCount).toBe(3);
 	});
 
+	describe("regression: e must override q mode (autoPlay)", () => {
+		it("advanceStage (e) clears autoPlay, so a later completion doesn't auto-advance again", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+
+			actions.startAutoPlay(skeletonData, "H999"); // q
+			expect(state.autoPlay).toBe(true);
+
+			actions.advanceStage(skeletonData, "H999"); // e
+			expect(state.autoPlay).toBe(false);
+		});
+
+		it("startAutoPlay (q) sets autoPlay back on", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+
+			actions.startAutoPlay(skeletonData, "H999");
+			actions.advanceStage(skeletonData, "H999");
+			expect(state.autoPlay).toBe(false);
+
+			actions.startAutoPlay(skeletonData, "H999");
+			expect(state.autoPlay).toBe(true);
+		});
+	});
+
 	it("advanceStage/startAutoPlay return false when there's no skeleton loaded", () => {
 		const state = new BondViewState();
 		const actions = new BondSequenceActions(state);
@@ -104,21 +131,167 @@ describe("BondSequenceActions", () => {
 			expect(state.stageIndex).toBe(0); // re-anchored to 00_idle's stage
 		});
 
-		it("unchecking an animation still enters manual mode, but leaves stageIndex/sequence untouched", () => {
+		it("unchecking an animation freezes playback instead of entering a blank manual mode", () => {
 			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
 			const state = new BondViewState();
 			const actions = new BondSequenceActions(state);
 
 			actions.startAutoPlay(skeletonData, "H999");
 			actions.advanceStage(skeletonData, "H999"); // -> stage 1
-			const sequenceBefore = state.sequencer.sequence;
 
 			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
 
-			expect(state.sequencer.manualOverride).toBe(true);
+			expect(state.frozen).toBe(true);
 			expect(state.autoPlay).toBe(false);
-			expect(state.stageIndex).toBe(1); // untouched - takeManualControl wasn't called
-			expect(state.sequencer.sequence).toBe(sequenceBefore);
+		});
+	});
+
+	describe("regression: unchecking a bond animation freezes the current frame", () => {
+		function fakeAnimationState(currentByTrack: Record<number, { timeScale: number }>) {
+			let clearTracksCalls = 0;
+			return {
+				get clearTracksCalls() {
+					return clearTracksCalls;
+				},
+				clearTracks: () => {
+					clearTracksCalls += 1;
+				},
+				getCurrent: (trackIndex: number) => currentByTrack[trackIndex],
+			};
+		}
+
+		it("getAnimation freezes track 0's timeScale, returns no animations, and skips clearTracks", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+			const skeleton = { setToSetupPose: () => {} } as any;
+			const track0 = { timeScale: 1 };
+			const animationState = fakeAnimationState({ 0: track0 });
+
+			// settle lastSkeletonData first, as the real initial model load would,
+			// so the freeze below isn't masked by the "new skeleton" reset path
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+
+			actions.startAutoPlay(skeletonData, "H999");
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", true);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
+
+			const clearTracksCallsBefore = animationState.clearTracksCalls;
+			const result = actions.getAnimation(
+				skeletonData,
+				animationState as any,
+				skeleton,
+				"H999",
+				() => []
+			);
+
+			expect(result).toEqual([]);
+			expect(track0.timeScale).toBe(0);
+			expect(animationState.clearTracksCalls).toBe(clearTracksCallsBefore);
+		});
+
+		it("stays frozen across repeated getAnimation calls until q/e/checkbox is pressed", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+			const skeleton = { setToSetupPose: () => {} } as any;
+			const track0 = { timeScale: 1 };
+			const animationState = fakeAnimationState({ 0: track0 });
+
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", true);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
+
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+			const clearTracksCallsBefore = animationState.clearTracksCalls;
+			const result = actions.getAnimation(
+				skeletonData,
+				animationState as any,
+				skeleton,
+				"H999",
+				() => []
+			);
+
+			expect(result).toEqual([]);
+			expect(animationState.clearTracksCalls).toBe(clearTracksCallsBefore);
+		});
+
+		it("advanceStage (e) unfreezes and resumes the normal sequence", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+			const skeleton = { setToSetupPose: () => {} } as any;
+			const animationState = fakeAnimationState({ 0: { timeScale: 0 } });
+
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", true);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
+			expect(state.frozen).toBe(true);
+
+			actions.advanceStage(skeletonData, "H999");
+			expect(state.frozen).toBe(false);
+
+			const clearTracksCallsBefore = animationState.clearTracksCalls;
+			const result = actions.getAnimation(
+				skeletonData,
+				animationState as any,
+				skeleton,
+				"H999",
+				() => []
+			);
+			expect(result.length).toBeGreaterThan(0);
+			expect(animationState.clearTracksCalls).toBe(clearTracksCallsBefore + 1);
+		});
+
+		it("startAutoPlay (q) unfreezes and resumes auto-play", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", true);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
+			expect(state.frozen).toBe(true);
+
+			actions.startAutoPlay(skeletonData, "H999");
+			expect(state.frozen).toBe(false);
+			expect(state.autoPlay).toBe(true);
+		});
+
+		it("checking a different box unfreezes and takes manual control of the new selection", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", true);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
+			expect(state.frozen).toBe(true);
+
+			actions.handleCheckboxSelect(skeletonData, "H999", "40_end", true);
+			expect(state.frozen).toBe(false);
+			expect(state.sequencer.manualOverride).toBe(true);
+		});
+
+		it("switching to a new skeleton clears the frozen flag", () => {
+			const skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const otherSkeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+			const state = new BondViewState();
+			const actions = new BondSequenceActions(state);
+			const skeleton = { setToSetupPose: () => {} } as any;
+			const animationState = fakeAnimationState({ 0: { timeScale: 0 } });
+
+			actions.getAnimation(skeletonData, animationState as any, skeleton, "H999", () => []);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", true);
+			actions.handleCheckboxSelect(skeletonData, "H999", "20_loop", false);
+			expect(state.frozen).toBe(true);
+
+			actions.getAnimation(
+				otherSkeletonData,
+				animationState as any,
+				skeleton,
+				"H999",
+				() => []
+			);
+			expect(state.frozen).toBe(false);
 		});
 	});
 });

@@ -10,11 +10,29 @@ import type {
 export class BondSequenceActions {
 	constructor(private state: BondViewState) {}
 
+	// user-invoked "e": also cancels auto-play/frozen, since this is a fresh
+	// manual decision that overrides whatever mode was previously active
 	advanceStage(skeletonData: SkeletonData | undefined, skelName: string): boolean {
 		if (!skeletonData) {
 			return false;
 		}
 
+		this.state.autoPlay = false;
+		this.state.frozen = false;
+		return this.advanceSequencer(skeletonData, skelName);
+	}
+
+	// BondAutoPlay's own internal step while "q mode" is running - must NOT
+	// touch autoPlay, or auto-play would cancel itself after one stage
+	advanceStageAuto(skeletonData: SkeletonData | undefined, skelName: string): boolean {
+		if (!skeletonData) {
+			return false;
+		}
+
+		return this.advanceSequencer(skeletonData, skelName);
+	}
+
+	private advanceSequencer(skeletonData: SkeletonData, skelName: string): boolean {
 		const { animate } = buildBondAnimate(skeletonData.animations, skelName);
 		if (!this.state.sequencer.advance(animate)) {
 			return false;
@@ -27,6 +45,8 @@ export class BondSequenceActions {
 		if (!skeletonData) {
 			return false;
 		}
+
+		this.state.frozen = false;
 
 		const { animate } = buildBondAnimate(skeletonData.animations, skelName);
 		this.state.sequencer.enterStage(animate, 0);
@@ -67,12 +87,18 @@ export class BondSequenceActions {
 		name: string,
 		checked: boolean
 	) {
-		this.state.sequencer.manualOverride = true;
 		this.state.autoPlay = false;
 
 		if (checked) {
+			this.state.frozen = false;
+			this.state.sequencer.manualOverride = true;
 			this.takeManualControl(skeletonData, skelName, name);
+			return;
 		}
+
+		// unchecking freezes whatever is currently playing at that exact frame,
+		// rather than resuming auto-play or going blank
+		this.state.frozen = true;
 	}
 
 	getAnimation(
@@ -87,6 +113,15 @@ export class BondSequenceActions {
 			this.state.lastSkeletonData = skeletonData;
 			this.state.sequencer.reset();
 			this.state.autoPlay = false;
+			this.state.frozen = false;
+		}
+
+		if (this.state.frozen) {
+			const current = animationState.getCurrent(0);
+			if (current) {
+				current.timeScale = 0;
+			}
+			return [];
 		}
 
 		animationState.clearTracks();

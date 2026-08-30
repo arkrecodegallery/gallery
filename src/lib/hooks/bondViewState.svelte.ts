@@ -15,6 +15,7 @@ export class BondViewState {
 	activeBarIndex: number = $state(-1);
 	barProgress: number = $state(0);
 	autoPlay: boolean = $state(false);
+	frozen: boolean = $state(false);
 	stillsIndex: number = $state(0);
 
 	sequencer = new BondSequencer();

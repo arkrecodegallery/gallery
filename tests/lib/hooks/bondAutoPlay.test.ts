@@ -86,4 +86,23 @@ describe("BondAutoPlay", () => {
 
 		expect(updated).toBe(false);
 	});
+
+	it("regression: a manual e-press after q stops auto-advance on later completions", () => {
+		const state = new BondViewState();
+		const actions = new BondSequenceActions(state);
+		let updateCount = 0;
+		const autoPlay = new BondAutoPlay(state, actions, () => updateCount++);
+
+		actions.startAutoPlay(skeletonData, "H999"); // q -> stage 0, autoPlay on
+		actions.advanceStage(skeletonData, "H999"); // e -> stage 1, should turn autoPlay off
+		expect(state.autoPlay).toBe(false);
+		expect(state.stageIndex).toBe(1);
+
+		// a completion firing after the manual e-press must not auto-advance further,
+		// since autoPlay ("q mode") was cancelled by the manual press
+		autoPlay.handleAnimationComplete(fakeEntry(), {} as any, "bond", skeletonData, "H999");
+
+		expect(updateCount).toBe(0);
+		expect(state.stageIndex).toBe(1);
+	});
 });

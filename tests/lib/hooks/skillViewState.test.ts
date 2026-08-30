@@ -104,6 +104,44 @@ describe("SkillViewState", () => {
 		).toBe("00_Idle");
 	});
 
+	it("regression: requestTouch permanently clears a checked box instead of resuming it after", () => {
+		const skeleton = fakeSkeleton(["00_Idle", "20_Loop", "04_Touch"]);
+		const state = new SkillViewState();
+		const animationState = new FakeAnimationState();
+
+		state.setChecked("20_Loop", true);
+		state.requestTouch();
+		expect(state.skillActiveAnimationName).toBeUndefined();
+
+		const result = state.getAnimation(
+			skeleton,
+			animationState as unknown as AnimationState
+		);
+		expect(result).toEqual([
+			{ trackIndex: 1, animationName: "04_Touch", loop: false },
+		]);
+
+		animationState.tracks[0] = { animation: { name: "00_Idle" }, trackTime: 5 };
+		animationState.complete({ animation: { name: "04_Touch" } } as TrackEntry);
+
+		// resumes idle, not the previously-checked "20_Loop"
+		expect(animationState.getCurrent(50)?.animation?.name).toBe("00_Idle");
+	});
+
+	it("regression: requestCutscene permanently clears a checked box instead of resuming it after", () => {
+		const skeleton = fakeSkeleton(["00_Idle", "20_Loop", "05_Cutscene"]);
+		const state = new SkillViewState();
+		const animationState = new FakeAnimationState();
+
+		state.setChecked("20_Loop", true);
+		state.requestCutscene();
+		expect(state.skillActiveAnimationName).toBeUndefined();
+
+		expect(
+			state.currentCheckboxAnimation(animationState as unknown as AnimationState, skeleton)
+		).toBe("00_Idle");
+	});
+
 	it("resets active state when the skeleton changes, but not on repeat calls with the same one", () => {
 		const skeleton1 = fakeSkeleton(["00_Idle"]);
 		const skeleton2 = fakeSkeleton(["00_Idle"]);

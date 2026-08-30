@@ -35,10 +35,12 @@ export class SkillViewState {
 	private lastSkeletonData?: SkeletonData;
 
 	requestTouch() {
+		this.skillActiveAnimationName = undefined;
 		this.touch = true;
 	}
 
 	requestCutscene() {
+		this.skillActiveAnimationName = undefined;
 		this.cutScene = true;
 	}
 

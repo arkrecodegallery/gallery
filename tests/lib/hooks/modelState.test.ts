@@ -3,6 +3,7 @@ import type { Animation, AnimationState, SkeletonData } from "@esotericsoftware/
 import type { Entry } from "$lib/core/types";
 import { store } from "$lib/hooks/state.svelte";
 import { ModelState } from "$lib/hooks/modelState.svelte";
+import { keybinds } from "$lib/core/keybinds.svelte";
 
 function anims(names: string[]): Animation[] {
 	return names.map((name) => ({ name }) as Animation);
@@ -101,5 +102,97 @@ describe("ModelState checkbox dispatch", () => {
 		store.modelState.frameSync.syncFrame(animationState);
 
 		expect(store.modelState.checkboxAnimations.animations).toEqual({ "20_loop": 0 });
+	});
+});
+
+describe("regression: q/e must override an active checkbox selection", () => {
+	it("hero view: pressing q (Cutscene) after a checkbox check resumes normal cycling", () => {
+		store.view = "hero";
+		store.skeletonData = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
+		store.map = { H999: fakeEntry() };
+
+		store.modelState.input.setAnimationChecked("20_Loop", true);
+		expect(store.modelState.heroAnimation.currentClipName()).toBe("20_Loop");
+
+		store.modelState.updateFlags.hasAnimationUpdate(); // clear whatever the checkbox click already requested
+		store.modelState.input.handleAnimationChange(keybinds.Cutscene);
+
+		expect(store.modelState.heroAnimation.currentClipName()).not.toBe("20_Loop");
+		expect(store.modelState.updateFlags.hasAnimationUpdate()).toBe(true);
+	});
+
+	it("hero view: pressing e (Touch) after a checkbox check turns the checked loop into a one-shot", () => {
+		store.view = "hero";
+		store.skeletonData = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
+		store.map = { H999: fakeEntry() };
+		const fakeAnimationState = {
+			addListener: () => {},
+			removeListener: () => {},
+		} as unknown as AnimationState;
+
+		store.modelState.input.setAnimationChecked("20_Loop", true);
+		expect(store.modelState.heroAnimation.currentClipName()).toBe("20_Loop");
+		expect(
+			store.modelState.frameSync.getAnimation(
+				store.skeletonData,
+				fakeAnimationState,
+				{} as any
+			)
+		).toContainEqual({ trackIndex: 1, animationName: "20_Loop", loop: true });
+
+		store.modelState.input.handleAnimationChange(keybinds.Touch);
+
+		// same clip name (checking synced selectedIndex to it), but no longer looping
+		expect(store.modelState.heroAnimation.currentClipName()).toBe("20_Loop");
+		expect(
+			store.modelState.frameSync.getAnimation(
+				store.skeletonData,
+				fakeAnimationState,
+				{} as any
+			)
+		).toContainEqual({ trackIndex: 1, animationName: "20_Loop", loop: false });
+	});
+
+	it("bond view: pressing e (Touch) after q (Cutscene) turns off auto-play", () => {
+		store.view = "bond";
+		store.skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+		store.map = {
+			H999: fakeEntry({
+				bond: [
+					{
+						kind: "animated",
+						bundle: { skel: "Assets/H999/H999b.skel", atlas: "Assets/H999/H999b.atlas" },
+						motions: [],
+					},
+				],
+			}),
+		};
+
+		store.modelState.input.handleAnimationChange(keybinds.Cutscene);
+		expect(store.modelState.bond.autoPlay).toBe(true);
+
+		store.modelState.input.handleAnimationChange(keybinds.Touch);
+		expect(store.modelState.bond.autoPlay).toBe(false);
+	});
+
+	it("bond view: unchecking a checkbox freezes playback", () => {
+		store.view = "bond";
+		store.skeletonData = fakeSkeleton(["00_idle", "20_loop", "40_end"]);
+		store.map = {
+			H999: fakeEntry({
+				bond: [
+					{
+						kind: "animated",
+						bundle: { skel: "Assets/H999/H999b.skel", atlas: "Assets/H999/H999b.atlas" },
+						motions: [],
+					},
+				],
+			}),
+		};
+
+		store.modelState.input.setAnimationChecked("20_loop", true);
+		store.modelState.input.setAnimationChecked("20_loop", false);
+
+		expect(store.modelState.bond.frozen).toBe(true);
 	});
 });

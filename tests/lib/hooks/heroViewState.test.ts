@@ -146,4 +146,99 @@ describe("HeroViewState", () => {
 
 		expect(state.selectedIndex).toBe(0);
 	});
+
+	describe("regression: q/e must override an active checkbox selection", () => {
+		it("cycleSelection (q) clears a checkbox override and resumes idle", () => {
+			const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
+			const state = new HeroViewState();
+			const animationState = new FakeAnimationState();
+
+			state.setChecked(skeleton, "20_Loop", true, HERO_ID);
+			expect(state.currentClipName()).toBe("20_Loop");
+
+			expect(state.cycleSelection(skeleton, HERO_ID)).toBe(true);
+
+			expect(state.currentClipName()).toBe("00_Idle");
+			expect(
+				state.getAnimation(skeleton, animationState as unknown as AnimationState, HERO_ID)
+			).toEqual([
+				{ trackIndex: 0, animationName: "00_Idle", loop: true },
+				{ trackIndex: 1, animationName: "00_Idle", loop: true },
+			]);
+		});
+
+		it("cycleSelection (q) with no active override just advances as before", () => {
+			const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
+			const state = new HeroViewState();
+
+			expect(state.cycleSelection(skeleton, HERO_ID)).toBe(false);
+			expect(state.selectedIndex).toBe(1);
+		});
+
+		it("playSelected (e) immediately overrides a checked animation, turning it from a loop into a one-shot", () => {
+			const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
+			const state = new HeroViewState();
+			const animationState = new FakeAnimationState();
+
+			// checking "20_Loop" also syncs selectedIndex to it, so e replays
+			// the same clip name - the regression is loop:true -> loop:false
+			// (a persistent checkbox loop becoming a normal one-shot) and the
+			// re-press guard re-arming (see next test), not a different clip.
+			state.setChecked(skeleton, "20_Loop", true, HERO_ID);
+			expect(state.currentClipName()).toBe("20_Loop");
+			expect(
+				state.getAnimation(skeleton, animationState as unknown as AnimationState, HERO_ID)
+			).toEqual([
+				{ trackIndex: 0, animationName: "00_Idle", loop: true },
+				{ trackIndex: 1, animationName: "20_Loop", loop: true },
+			]);
+
+			expect(state.playSelected(skeleton, HERO_ID)).toBe(true);
+
+			expect(state.currentClipName()).toBe("20_Loop");
+			expect(
+				state.getAnimation(skeleton, animationState as unknown as AnimationState, HERO_ID)
+			).toEqual([
+				{ trackIndex: 0, animationName: "00_Idle", loop: true },
+				{ trackIndex: 1, animationName: "20_Loop", loop: false },
+			]);
+		});
+
+		it("q then e after a checkbox check together resume normal cycling onto a different clip", () => {
+			const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
+			const state = new HeroViewState();
+			const animationState = new FakeAnimationState();
+
+			state.setChecked(skeleton, "20_Loop", true, HERO_ID); // selectedIndex -> "20_Loop"
+			expect(state.cycleSelection(skeleton, HERO_ID)).toBe(true); // clears override, advances to "04_Touch"
+			expect(state.playSelected(skeleton, HERO_ID)).toBe(true);
+
+			expect(state.currentClipName()).toBe("04_Touch");
+			expect(
+				state.getAnimation(skeleton, animationState as unknown as AnimationState, HERO_ID)
+			).toEqual([
+				{ trackIndex: 0, animationName: "00_Idle", loop: true },
+				{ trackIndex: 1, animationName: "04_Touch", loop: false },
+			]);
+		});
+
+		it("playSelected (e) still ignores a re-press mid-playback of a normal one-shot", () => {
+			const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
+			const state = new HeroViewState();
+
+			expect(state.playSelected(skeleton, HERO_ID)).toBe(true);
+			expect(state.playSelected(skeleton, HERO_ID)).toBe(false); // clip already active, not a checkbox override
+		});
+
+		it("checking a different box after q/e cleared a prior override still switches freely", () => {
+			const skeleton = fakeSkeleton(["00_Idle", "04_Touch", "20_Loop"]);
+			const state = new HeroViewState();
+
+			state.setChecked(skeleton, "20_Loop", true, HERO_ID);
+			state.cycleSelection(skeleton, HERO_ID); // q clears the override
+
+			state.setChecked(skeleton, "04_Touch", true, HERO_ID);
+			expect(state.currentClipName()).toBe("04_Touch");
+		});
+	});
 });

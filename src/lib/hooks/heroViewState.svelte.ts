@@ -18,6 +18,7 @@ export class HeroViewState {
 	private idleName?: string;
 	private activeClipName?: string;
 	private activeClipLoop = false;
+	private checkboxOverride = false;
 	private activeTrackIndex = 0;
 	private lastSkeletonData?: SkeletonData;
 	private lastSkelName?: string;
@@ -35,24 +36,38 @@ export class HeroViewState {
 		this.playingIndex = -1;
 		this.activeClipName = undefined;
 		this.activeClipLoop = false;
+		this.checkboxOverride = false;
 	}
 
-	cycleSelection(skeletonData: SkeletonData, skelName: string) {
+	cycleSelection(skeletonData: SkeletonData, skelName: string): boolean {
 		this.syncEligibility(skeletonData, skelName);
 		if (this.eligibleNames.length === 0) {
-			return;
+			return false;
+		}
+
+		const hadOverride = this.checkboxOverride;
+		if (hadOverride) {
+			this.activeClipName = undefined;
+			this.activeClipLoop = false;
+			this.playingIndex = -1;
+			this.checkboxOverride = false;
 		}
 
 		this.selectedIndex = (this.selectedIndex + 1) % this.eligibleNames.length;
+		return hadOverride;
 	}
 
 	playSelected(skeletonData: SkeletonData, skelName: string): boolean {
 		this.syncEligibility(skeletonData, skelName);
 		const name = this.eligibleNames[this.selectedIndex];
-		if (!name || this.activeClipName) {
+		if (!name) {
+			return false;
+		}
+		if (this.activeClipName && !this.checkboxOverride) {
 			return false;
 		}
 
+		this.checkboxOverride = false;
 		this.activeClipName = name;
 		this.activeClipLoop = false;
 		this.playingIndex = this.selectedIndex;
@@ -67,6 +82,7 @@ export class HeroViewState {
 			if (this.activeClipName === name) {
 				this.activeClipName = undefined;
 				this.activeClipLoop = false;
+				this.checkboxOverride = false;
 				this.playingIndex = -1;
 			}
 			return;
@@ -74,6 +90,7 @@ export class HeroViewState {
 
 		this.activeClipName = name;
 		this.activeClipLoop = true;
+		this.checkboxOverride = true;
 		const index = this.eligibleNames.indexOf(name);
 		this.playingIndex = index;
 		if (index !== -1) {

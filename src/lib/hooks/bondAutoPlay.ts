@@ -50,7 +50,7 @@ export class BondAutoPlay {
 			return false;
 		}
 
-		if (!this.actions.advanceStage(skeletonData, skelName)) {
+		if (!this.actions.advanceStageAuto(skeletonData, skelName)) {
 			return false;
 		}
 		this.requestUpdate();

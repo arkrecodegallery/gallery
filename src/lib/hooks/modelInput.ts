@@ -51,10 +51,14 @@ export class ModelInputHandler {
 		switch (key) {
 			case keybinds.Cutscene:
 				if (heroFamily && store.skeletonData) {
-					this.heroAnimation.cycleSelection(
-						store.skeletonData,
-						this.heroSelection.resolveSkelName()!
-					);
+					if (
+						this.heroAnimation.cycleSelection(
+							store.skeletonData,
+							this.heroSelection.resolveSkelName()!
+						)
+					) {
+						this.updateFlags.requestAnimationUpdate();
+					}
 				} else if (store.view === "skill") {
 					this.skillView.requestCutscene();
 					this.updateFlags.requestAnimationUpdate();

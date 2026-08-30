@@ -23,12 +23,18 @@ machine that runs the Tauri app) rather than guessing.
 ## Running the inspector
 
 ```
-SKEL_ID=<hero or bond id, or any path fragment> npx vitest run --config scripts/vitest.scripts.config.ts
+SKEL_ID=<hero or bond id, or any path fragment> npx vitest run --config scripts/vitest.scripts.config.ts scripts/extract-skel-animations.test.ts
 ```
+
+Always pass the file explicitly - `scripts/vitest.scripts.config.ts` now also
+picks up `scripts/prepare-static-data.test.ts` (writes `static/gallery-data`)
+and `scripts/validate-bond-rules.test.ts` (needs a pre-exported
+`animations.json`), so a bare `vitest run --config ...` with no path runs all
+three.
 
 `bondRules.ts` is keyed by skel name, so each matched file's own basename
 (e.g. `A0145`) is used automatically to look up its override (skip/rename/
-disable) before grouping, exactly as the app would.
+overrides/reorderBefore) before grouping, exactly as the app would.
 
 `SKEL_ID` is matched case-insensitively as a substring against `.skel`
 paths under `$TEST_GALLERY_DIR/containers`, so a bond id (`A0145`) or hero

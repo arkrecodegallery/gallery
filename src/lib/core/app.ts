@@ -21,16 +21,18 @@ export class App implements SpineCanvasApp {
 	animation!: AnimationState;
 
 	loadAssets(canvas: SpineCanvas): void {
-		const entry = store.modelState.heroSelection.getAbsoluteEntry();
-		store.assetManager.loadModel(
-			canvas,
-			entry,
-			store.view,
-			store.modelState.heroSelection.cycleIndex,
-			(loading) => {
-				store.loading = loading;
-			}
-		);
+		const { entry, view, cycleIndex } = this.currentModelParams();
+		store.assetManager.loadModel(canvas, entry, view, cycleIndex, (loading) => {
+			store.loading = loading;
+		});
+	}
+
+	currentModelParams() {
+		return {
+			entry: store.modelState.heroSelection.getAbsoluteEntry(),
+			view: store.view,
+			cycleIndex: store.modelState.heroSelection.cycleIndex,
+		};
 	}
 
 	initialize(canvas: SpineCanvas) {
@@ -138,6 +140,9 @@ export class App implements SpineCanvasApp {
 	}
 
 	async reloadModel(canvas: SpineCanvas) {
+		const { entry, view, cycleIndex } = this.currentModelParams();
+		await store.assetManager.prepareAssets(entry, view, cycleIndex).catch(() => {});
+
 		this.loadAssets(canvas);
 		await canvas.assetManager.loadAll();
 		this.initialize(canvas);

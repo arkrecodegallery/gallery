@@ -27,6 +27,7 @@
 		"bits-ui": "^2.18.1",
 		"clsx": "^2.1.1",
 		"cross-env": "^7.0.3",
+		"fake-indexeddb": "^6.0.0",
 		"mode-watcher": "^1.1.0",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",

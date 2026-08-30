@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { it } from "vitest";
 import { loadDotEnv } from "./loadDotEnv";
+import { parseAtlasPageImages } from "../src/lib/core/atlasPages";
 import type { Bundle, Entry, Map as GalleryMap } from "../src/lib/core/types";
 
 /**
@@ -39,25 +40,6 @@ function collectEntryPaths(entry: Entry, out: Set<string>) {
 	}
 
 	(entry.collection ?? []).forEach((image) => out.add(image));
-}
-
-// Spine atlas format: each page block starts with its image filename as
-// the first line after a blank line (or the start of the file).
-function parseAtlasPageImages(atlasText: string): string[] {
-	const images: string[] = [];
-	let expectHeader = true;
-	for (const raw of atlasText.split(/\r?\n/)) {
-		const line = raw.trim();
-		if (line === "") {
-			expectHeader = true;
-			continue;
-		}
-		if (expectHeader) {
-			images.push(line);
-			expectHeader = false;
-		}
-	}
-	return images;
 }
 
 function addAtlasTextures(containersDir: string, atlasRelativePath: string, out: Set<string>) {

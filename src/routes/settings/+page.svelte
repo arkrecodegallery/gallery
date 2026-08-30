@@ -2,6 +2,7 @@
 	import { Button } from "$lib/components/ui/button";
 	import { ScrollArea } from "$lib/components/ui/scroll-area";
 	import { Kbd } from "$lib/components/ui/kbd";
+	import { toast } from "svelte-sonner";
 	import {
 		keybinds,
 		keybindLabels,
@@ -9,8 +10,22 @@
 		resetKeybinds,
 		type KeybindAction,
 	} from "$lib/core/keybinds.svelte";
+	import {
+		cacheSettings,
+		cacheSizePresetsMB,
+		setCacheSizeMB,
+	} from "$lib/core/cacheSettings.svelte";
+	import { clearAssetCache } from "$lib/core/assetCache/assetCache";
 
 	const actions = Object.keys(keybindLabels) as KeybindAction[];
+
+	function onClearCache() {
+		toast.promise(clearAssetCache(), {
+			loading: "Clearing cached assets...",
+			success: "Cache cleared.",
+			error: "Failed to clear cache.",
+		});
+	}
 
 	let listeningFor = $state<KeybindAction | null>(null);
 
@@ -84,6 +99,24 @@
 				for that view will win.
 			</p>
 		{/if}
+
+		<div class="flex flex-col gap-2 border-t border-foreground/10 pt-4">
+			<h2 class="text-sm font-semibold">Asset Cache</h2>
+			<div class="flex flex-wrap gap-2">
+				{#each cacheSizePresetsMB as sizeMB (sizeMB)}
+					<Button
+						variant={cacheSettings.maxSizeMB === sizeMB ? "default" : "outline"}
+						size="sm"
+						onclick={() => setCacheSizeMB(sizeMB)}
+					>
+						{sizeMB} MB
+					</Button>
+				{/each}
+			</div>
+			<Button variant="outline" size="sm" onclick={onClearCache}>
+				Clear Cache
+			</Button>
+		</div>
 
 		<div class="flex justify-between gap-2">
 			<Button variant="outline" onclick={resetKeybinds}>

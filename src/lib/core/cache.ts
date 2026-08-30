@@ -1,4 +1,5 @@
 import type { SpineCanvas } from "@esotericsoftware/spine-webgl";
+import { prepareSpineAssets, seedSpineAssets } from "./assetCache/spineSeed";
 import type { Entry, ModelView } from "./types";
 
 export class AssetManager {
@@ -42,6 +43,8 @@ export class AssetManager {
 		this.loadedBinary = false;
 		this.loadedAtlas = false;
 
+		seedSpineAssets(canvas, this.binary, this.atlas);
+
 		canvas.assetManager.loadBinary(this.binary, () => {
 			if (disposeBinary && disposeBinary !== this.binary) {
 				canvas.assetManager.remove(disposeBinary);
@@ -56,6 +59,13 @@ export class AssetManager {
 			this.loadedAtlas = true;
 			this.loadingComplete(onLoadingChange);
 		});
+	}
+
+	// Must be awaited before loadModel() so the bytes are already hot when
+	// loadModel's synchronous setRawDataURI seeding runs - see spineSeed.ts.
+	public async prepareAssets(entry: Entry, view: ModelView, cycleIndex: number) {
+		const assets = this.getAssets(entry, view, cycleIndex);
+		await prepareSpineAssets(this.path(assets[0]), this.path(assets[1]));
 	}
 
 	loadingComplete(onLoadingChange: (loading: boolean) => void) {

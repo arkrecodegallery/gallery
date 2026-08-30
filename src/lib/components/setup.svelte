@@ -5,6 +5,7 @@
 	import { Button, buttonVariants } from "./ui/button";
 	import { toast } from "svelte-sonner";
 	import { setupState } from "$lib/hooks/setup.svelte";
+	import { clearAssetCache } from "$lib/core/assetCache/assetCache";
 
 	const setup = platform.setup!;
 
@@ -17,16 +18,22 @@
 	});
 
 	function processData() {
-		toast.promise(setup.processGalleryDataDir(), {
-			loading: "Processing gallery data. This may take a while...",
-			success: () => {
-				setupState.setup = true;
-				return "Successfully processed data!";
-			},
-			error: (err) => {
-				return `Error: ${err}`;
-			},
-		});
+		toast.promise(
+			setup.processGalleryDataDir().then(async (message) => {
+				await clearAssetCache();
+				return message;
+			}),
+			{
+				loading: "Processing gallery data. This may take a while...",
+				success: () => {
+					setupState.setup = true;
+					return "Successfully processed data!";
+				},
+				error: (err) => {
+					return `Error: ${err}`;
+				},
+			}
+		);
 	}
 </script>
 

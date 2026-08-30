@@ -1,3 +1,5 @@
+import "fake-indexeddb/auto";
+
 if (typeof globalThis.window === "undefined") {
 	const listeners = new Map<string, Set<(ev: unknown) => void>>();
 	(globalThis as unknown as { window: unknown }).window = {

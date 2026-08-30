@@ -2,6 +2,7 @@
 	import { store } from "$lib/hooks/state.svelte";
 	import { fade } from "svelte/transition";
 	import Spinner from "./ui/spinner/spinner.svelte";
+	import CachedImage from "./cachedImage.svelte";
 
 	const image = $derived.by(() => {
 		const entry = store.modelState.heroSelection.getAbsoluteEntry();
@@ -36,8 +37,8 @@
 
 {#if image}
 	<div class="w-dvw h-dvh bg-canvas absolute z-5">
-		<img
-			src={image}
+		<CachedImage
+			path={image}
 			onload={() => {
 				store.loading = false;
 			}}

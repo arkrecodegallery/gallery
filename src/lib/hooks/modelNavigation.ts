@@ -1,6 +1,7 @@
 import { store } from "./state.svelte";
 import type { HeroSelection } from "./heroSelection.svelte";
 import type { SkinState } from "./skinState.svelte";
+import type { BondViewState } from "./bondViewState.svelte";
 import type { Entry, ModelView } from "$lib/core/types";
 import { keybinds } from "$lib/core/keybinds.svelte";
 
@@ -8,6 +9,7 @@ export class ModelNavigation {
 	constructor(
 		private heroSelection: HeroSelection,
 		private skinState: SkinState,
+		private bondViewState: BondViewState,
 		private onModelUpdate: () => void
 	) {}
 
@@ -81,6 +83,8 @@ export class ModelNavigation {
 		this.heroSelection.absoluteHeroIndex = Object.values(store.map).findIndex(
 			(h) => h.id === entry.id
 		);
+		this.heroSelection.cycleIndex = 0;
+		this.bondViewState.stillsIndex = 0;
 
 		if (store.view === "collection") {
 			if ((entry.collection ?? []).length === 0) {
@@ -96,7 +100,6 @@ export class ModelNavigation {
 
 		this.onModelUpdate();
 		this.skinState.skinLevel = 1;
-		this.heroSelection.cycleIndex = 0;
 	}
 
 	private handleBondViewSwitch(entry: Entry, prevView: ModelView) {
@@ -117,6 +120,8 @@ export class ModelNavigation {
 		} else {
 			this.heroSelection.cycleIndex = 0;
 		}
+
+		this.bondViewState.stillsIndex = 0;
 
 		if (!!this.heroSelection.getBundle(entry, store.view)) {
 			this.onModelUpdate();

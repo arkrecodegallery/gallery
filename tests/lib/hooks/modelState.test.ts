@@ -23,6 +23,10 @@ function fakeEntry(overrides: Partial<Entry> = {}): Entry {
 	} as Entry;
 }
 
+function pressKey(key: string) {
+	window.dispatchEvent({ type: "keydown", key, target: {} } as unknown as Event);
+}
+
 beforeEach(() => {
 	store.modelState = new ModelState();
 	store.view = "hero";
@@ -198,10 +202,6 @@ describe("regression: q/e must override an active checkbox selection", () => {
 });
 
 describe("regression: the global keydown listener must drive hero/view navigation", () => {
-	function pressKey(key: string) {
-		window.dispatchEvent({ type: "keydown", key, target: {} } as unknown as Event);
-	}
-
 	beforeEach(() => {
 		// each test's `new ModelState()` above registers another stale
 		// window listener; drop them all and start with exactly one
@@ -235,5 +235,210 @@ describe("regression: the global keydown listener must drive hero/view navigatio
 		pressKey(keybinds.Hero_View);
 
 		expect(store.view).toBe("alt");
+	});
+});
+
+function stillsBond(images: string[]) {
+	return { kind: "stills" as const, images };
+}
+
+describe("regression: hero switch must not use a stale cycleIndex for view-availability checks", () => {
+	beforeEach(() => {
+		(window as unknown as { __clearEventListeners: () => void }).__clearEventListeners();
+		store.modelState = new ModelState();
+	});
+
+	it("bug: being on the 2nd bond and switching hero must stay on bond view for a hero whose bond array is shorter", () => {
+		store.view = "bond";
+		store.map = {
+			H998: fakeEntry({ id: "H998", bond: [stillsBond(["a.png"])] }),
+			H999: fakeEntry({ id: "H999", bond: [stillsBond(["b.png"]), stillsBond(["c.png"])] }),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 1;
+		store.modelState.heroSelection.absoluteHeroIndex = 1;
+		store.modelState.heroSelection.cycleIndex = 1; // "2nd bond" of H999
+
+		pressKey(keybinds.Hero_Increment); // wraps around to H998, which only has bond[0]
+
+		expect(store.view).toBe("bond");
+		expect(store.modelState.heroSelection.cycleIndex).toBe(0);
+	});
+
+	it("hero switch still falls back to hero view when the new hero has no bond at all", () => {
+		store.view = "bond";
+		store.map = {
+			H998: fakeEntry({ id: "H998" }), // no bond
+			H999: fakeEntry({ id: "H999", bond: [stillsBond(["b.png"]), stillsBond(["c.png"])] }),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 1;
+		store.modelState.heroSelection.absoluteHeroIndex = 1;
+		store.modelState.heroSelection.cycleIndex = 1;
+
+		pressKey(keybinds.Hero_Increment);
+
+		expect(store.view).toBe("hero");
+		expect(store.modelState.heroSelection.cycleIndex).toBe(0);
+	});
+});
+
+describe("regression: stillsIndex must reset when the displayed bond changes", () => {
+	beforeEach(() => {
+		(window as unknown as { __clearEventListeners: () => void }).__clearEventListeners();
+		store.modelState = new ModelState();
+	});
+
+	it("bug: switching hero must reset a stale stillsIndex left over from the previous hero's bond", () => {
+		store.view = "bond";
+		store.map = {
+			H998: fakeEntry({
+				id: "H998",
+				bond: [stillsBond(["a1.png"]), stillsBond(["a2.png", "a3.png", "a4.png", "a5.png"])],
+			}),
+			H999: fakeEntry({ id: "H999", bond: [stillsBond(["b1.png"])] }),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+		store.modelState.heroSelection.cycleIndex = 1;
+		store.modelState.bond.stillsIndex = 3; // last image of the 4-image stills bond
+
+		pressKey(keybinds.Hero_Increment);
+
+		expect(store.modelState.bond.stillsIndex).toBe(0);
+	});
+
+	it("bug: cycling to a different bond of the same hero must reset a stale stillsIndex", () => {
+		store.view = "bond";
+		store.map = {
+			H999: fakeEntry({
+				id: "H999",
+				bond: [
+					stillsBond(["a1.png", "a2.png", "a3.png", "a4.png"]),
+					stillsBond(["b1.png"]),
+				],
+			}),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+		store.modelState.heroSelection.cycleIndex = 0;
+		store.modelState.bond.stillsIndex = 3;
+
+		pressKey(keybinds.Bond_View); // cycle from bond[0] (4 images) to bond[1] (1 image)
+
+		expect(store.modelState.heroSelection.cycleIndex).toBe(1);
+		expect(store.modelState.bond.stillsIndex).toBe(0);
+	});
+
+	it("cycling bond view with only one bond entry (wraps to the same entry) does not reset stillsIndex", () => {
+		store.view = "bond";
+		store.map = {
+			H999: fakeEntry({
+				id: "H999",
+				bond: [stillsBond(["a1.png", "a2.png", "a3.png"])],
+			}),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+		store.modelState.heroSelection.cycleIndex = 0;
+		store.modelState.bond.stillsIndex = 2;
+
+		pressKey(keybinds.Bond_View); // only one bond entry -> wraps back to index 0, no real switch
+
+		expect(store.modelState.heroSelection.cycleIndex).toBe(0);
+		expect(store.modelState.bond.stillsIndex).toBe(2);
+	});
+});
+
+describe("regression: hero-switch view/skin behavior beyond bond view", () => {
+	beforeEach(() => {
+		(window as unknown as { __clearEventListeners: () => void }).__clearEventListeners();
+		store.modelState = new ModelState();
+	});
+
+	it("preserves the current view across hero switch when the new hero supports it", () => {
+		store.view = "skill";
+		store.map = {
+			H998: fakeEntry({ id: "H998", skill: { skel: "s.skel", atlas: "s.atlas" } }),
+			H999: fakeEntry({ id: "H999", skill: { skel: "s2.skel", atlas: "s2.atlas" } }),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+
+		pressKey(keybinds.Hero_Increment);
+
+		expect(store.view).toBe("skill");
+	});
+
+	it("falls back to hero view when the new hero has no skill data", () => {
+		store.view = "skill";
+		store.map = {
+			H998: fakeEntry({ id: "H998", skill: { skel: "s.skel", atlas: "s.atlas" } }),
+			H999: fakeEntry({ id: "H999" }), // no skill
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+
+		pressKey(keybinds.Hero_Increment);
+
+		expect(store.view).toBe("hero");
+	});
+
+	it("falls back to hero view when the new hero's collection is empty", () => {
+		store.view = "collection";
+		store.map = {
+			H998: fakeEntry({ id: "H998", collection: ["cg1.png"] }),
+			H999: fakeEntry({ id: "H999", collection: [] }),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+
+		pressKey(keybinds.Hero_Increment);
+
+		expect(store.view).toBe("hero");
+	});
+
+	it("resets skinLevel to 1 on hero switch", () => {
+		store.view = "hero";
+		store.map = { H998: fakeEntry({ id: "H998" }), H999: fakeEntry({ id: "H999" }) };
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+		store.modelState.skinState.skinLevel = 3;
+
+		pressKey(keybinds.Hero_Increment);
+
+		expect(store.modelState.skinState.skinLevel).toBe(1);
+	});
+
+	it("collection view cycling wraps cycleIndex across entries of the same hero", () => {
+		store.view = "collection";
+		store.map = {
+			H999: fakeEntry({ id: "H999", collection: ["cg1.png", "cg2.png"] }),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+		store.modelState.heroSelection.cycleIndex = 0;
+
+		pressKey(keybinds.Collection_View);
+		expect(store.modelState.heroSelection.cycleIndex).toBe(1);
+
+		pressKey(keybinds.Collection_View);
+		expect(store.modelState.heroSelection.cycleIndex).toBe(0);
+	});
+
+	it("selectHeroById goes through the same reset path as keyboard hero switching", () => {
+		store.view = "bond";
+		store.map = {
+			H998: fakeEntry({ id: "H998", bond: [stillsBond(["a.png"])] }),
+			H999: fakeEntry({ id: "H999", bond: [stillsBond(["b.png"]), stillsBond(["c.png"])] }),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 1;
+		store.modelState.heroSelection.absoluteHeroIndex = 1;
+		store.modelState.heroSelection.cycleIndex = 1;
+		store.modelState.bond.stillsIndex = 3;
+
+		store.modelState.navigation.selectHeroById("H998");
+
+		expect(store.view).toBe("bond");
+		expect(store.modelState.heroSelection.cycleIndex).toBe(0);
+		expect(store.modelState.bond.stillsIndex).toBe(0);
 	});
 });

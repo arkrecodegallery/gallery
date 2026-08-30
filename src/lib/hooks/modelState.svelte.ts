@@ -29,6 +29,7 @@ export class ModelState {
 	public readonly navigation = new ModelNavigation(
 		this.heroSelection,
 		this.skinState,
+		this.bond,
 		() => this.updateFlags.requestModelUpdate()
 	);
 

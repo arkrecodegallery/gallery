@@ -50,6 +50,7 @@ export class ModelState {
 		this.frameSync,
 		this.heroSelection,
 		this.checkboxAnimations,
-		this.updateFlags
+		this.updateFlags,
+		this.navigation
 	);
 }

@@ -1,7 +1,19 @@
 if (typeof globalThis.window === "undefined") {
+	const listeners = new Map<string, Set<(ev: unknown) => void>>();
 	(globalThis as unknown as { window: unknown }).window = {
-		addEventListener: () => {},
-		removeEventListener: () => {},
+		addEventListener: (type: string, cb: (ev: unknown) => void) => {
+			if (!listeners.has(type)) listeners.set(type, new Set());
+			listeners.get(type)!.add(cb);
+		},
+		removeEventListener: (type: string, cb: (ev: unknown) => void) => {
+			listeners.get(type)?.delete(cb);
+		},
+		dispatchEvent: (ev: { type: string }) => {
+			listeners.get(ev.type)?.forEach((cb) => cb(ev));
+		},
+		__clearEventListeners: () => {
+			listeners.clear();
+		},
 	};
 }
 

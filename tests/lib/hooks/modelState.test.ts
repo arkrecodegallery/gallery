@@ -196,3 +196,44 @@ describe("regression: q/e must override an active checkbox selection", () => {
 		expect(store.modelState.bond.frozen).toBe(true);
 	});
 });
+
+describe("regression: the global keydown listener must drive hero/view navigation", () => {
+	function pressKey(key: string) {
+		window.dispatchEvent({ type: "keydown", key, target: {} } as unknown as Event);
+	}
+
+	beforeEach(() => {
+		// each test's `new ModelState()` above registers another stale
+		// window listener; drop them all and start with exactly one
+		(window as unknown as { __clearEventListeners: () => void }).__clearEventListeners();
+		store.modelState = new ModelState();
+	});
+
+	it("Hero_Increment advances the selected hero", () => {
+		store.map = { H998: fakeEntry({ id: "H998" }), H999: fakeEntry({ id: "H999" }) };
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+		store.modelState.updateFlags.hasModelUpdate(); // clear
+
+		pressKey(keybinds.Hero_Increment);
+
+		expect(store.modelState.heroSelection.relativeHeroIndex).toBe(1);
+		expect(store.modelState.heroSelection.absoluteHeroIndex).toBe(1);
+		expect(store.modelState.updateFlags.hasModelUpdate()).toBe(true);
+	});
+
+	it("Hero_View toggles between hero and alt view", () => {
+		store.view = "hero";
+		store.map = {
+			H999: fakeEntry({
+				alt: { skel: "Assets/H999/H999a.skel", atlas: "Assets/H999/H999a.atlas" },
+			}),
+		};
+		store.modelState.heroSelection.relativeHeroIndex = 0;
+		store.modelState.heroSelection.absoluteHeroIndex = 0;
+
+		pressKey(keybinds.Hero_View);
+
+		expect(store.view).toBe("alt");
+	});
+});

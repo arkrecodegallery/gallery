@@ -7,6 +7,7 @@ import type { ModelFrameSync } from "./modelFrameSync";
 import type { HeroSelection } from "./heroSelection.svelte";
 import type { CheckboxAnimationState } from "./checkboxAnimations.svelte";
 import type { UpdateFlags } from "./updateFlags";
+import type { ModelNavigation } from "./modelNavigation";
 import { keybinds, addKeydownListener } from "$lib/core/keybinds.svelte";
 
 export class ModelInputHandler {
@@ -18,11 +19,13 @@ export class ModelInputHandler {
 		private frameSync: ModelFrameSync,
 		private heroSelection: HeroSelection,
 		private checkboxAnimations: CheckboxAnimationState,
-		private updateFlags: UpdateFlags
+		private updateFlags: UpdateFlags,
+		private navigation: ModelNavigation
 	) {
 		addKeydownListener((ev) => {
 			this.handleSkinChange(ev.key);
 			this.handleAnimationChange(ev.key);
+			this.navigation.handleModelChange(ev.key);
 		});
 	}
 

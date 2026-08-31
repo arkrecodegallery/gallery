@@ -75,7 +75,7 @@ export class HeroViewState {
 		return true;
 	}
 
-	// checkbox-driven: any animation, always loops, switches freely
+	// unlike selectAnimation, checkbox selection always loops and switches freely
 	setChecked(skeletonData: SkeletonData, name: string, checked: boolean, skelName: string) {
 		this.syncEligibility(skeletonData, skelName);
 

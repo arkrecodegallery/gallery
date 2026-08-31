@@ -1,4 +1,3 @@
-// Maps ID -> Data
 export type Map = Record<string, Entry>;
 
 export interface Entry {

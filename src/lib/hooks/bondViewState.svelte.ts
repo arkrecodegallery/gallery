@@ -107,7 +107,6 @@ export class BondViewState {
 
 		const current = animationState.getCurrent(0);
 		if (this.manualOverride) {
-			// single bar for the checkbox-selected animation, not the auto sequence
 			this.sequenceBars = current?.animation
 				? [{ animationName: current.animation.name, loop: true }]
 				: [];

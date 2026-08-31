@@ -32,9 +32,7 @@ pub(super) fn init_collection(
     Some(result)
 }
 
-/// Looks for `cg`'s image under a given folder id, which is normally `cg`
-/// itself but may be a sibling id via `Rules::get_collection_redirect` when
-/// the texture was attributed to a paired CG's container instead.
+/// `folder_id` may be a sibling of `cg` via `Rules::get_collection_redirect`.
 fn try_find(assets: &AssetLookup, cg: &str, folder_id: &str) -> Option<String> {
     let search = |prefix: &str, container_suffix: &str| -> Option<CollectionMatch> {
         assets.get_by_prefix(prefix).into_iter().find_map(|group| {

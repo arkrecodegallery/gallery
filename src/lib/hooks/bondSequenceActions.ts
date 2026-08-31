@@ -11,8 +11,7 @@ import type {
 export class BondSequenceActions {
 	constructor(private state: BondViewState) {}
 
-	// user-invoked "e": also cancels auto-play/frozen, since this is a fresh
-	// manual decision that overrides whatever mode was previously active
+	// bound to the manual "e" key (see ModelInputHandler)
 	advanceStage(skeletonData: SkeletonData | undefined, skelName: string): boolean {
 		if (!skeletonData) {
 			return false;
@@ -23,8 +22,7 @@ export class BondSequenceActions {
 		return this.advanceSequencer(skeletonData, skelName);
 	}
 
-	// BondAutoPlay's own internal step while "q mode" is running - must NOT
-	// touch autoPlay, or auto-play would cancel itself after one stage
+	// must not touch autoPlay, or it would cancel itself after one stage
 	advanceStageAuto(skeletonData: SkeletonData | undefined, skelName: string): boolean {
 		if (!skeletonData) {
 			return false;
@@ -143,12 +141,10 @@ export class BondSequenceActions {
 					loop: step.loop,
 				}));
 
-		// the background track is normally owned by ModelFrameSync.updateBondBackground,
-		// which mutates it directly and independently of this rebuild - kept out of the
-		// clear here whenever it's actively playing, so it survives unrelated stage/
-		// checkbox changes uninterrupted. A checkbox multi-select can also claim that
-		// same index though (backgroundTrackClaimedByMain), in which case it's just a
-		// normal main-track entry and ModelFrameSync must leave it alone this frame.
+		// background track is owned by ModelFrameSync.updateBondBackground and
+		// mutated independently of this rebuild, so it's kept out of the clear
+		// while playing - unless a checkbox multi-select has claimed that index,
+		// tracked via backgroundTrackClaimedByMain, making it a normal entry
 		const keepIndices = mainEntries.map((entry) => entry.trackIndex);
 		this.state.backgroundTrackClaimedByMain = keepIndices.includes(BOND_BACKGROUND_TRACK);
 		if (this.state.backgroundAnimationName !== undefined) {

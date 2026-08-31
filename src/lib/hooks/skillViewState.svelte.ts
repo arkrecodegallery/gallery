@@ -21,8 +21,7 @@ const POSSIBLE_BG_NAMES = [
 	"90_BG_02",
 ];
 
-// dedicated track for checkbox-driven skill loops; kept well clear of
-// the dynamic idle/bg/touch/cutscene track indices below
+// kept well clear of the dynamic idle/bg/touch/cutscene track indices below
 const SKILL_CHECKBOX_TRACK = 50;
 
 export class SkillViewState {
@@ -175,11 +174,8 @@ export class SkillViewState {
 			animationState.addListener(listener);
 		}
 
-		// checkbox-driven loop, on its own track so it never
-		// collides with the touch/cutscene one-shot flow above.
-		// Skipped while a one-shot owns the higher-priority tracks
-		// (see the setEmptyAnimation/resumeName above) so it can't
-		// stomp the one-shot's pose.
+		// skipped while a one-shot owns skillActiveTrackIndex, so it can't
+		// stomp the one-shot's pose until the listener above resumes it
 		if (this.skillActiveTrackIndex === 0) {
 			if (this.skillActiveAnimationName) {
 				animations.push({

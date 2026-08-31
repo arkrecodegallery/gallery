@@ -34,9 +34,8 @@ export function resolveBackgroundAnimation(
 		return defaultBackgroundName;
 	}
 
-	// stage 0 is always the intro/idle before any progress trigger fires,
-	// so cycling back around to it (advance() wraps past the last stage)
-	// must reset the background instead of staying latched on the last trigger
+	// advance() wraps past the last stage back to 0 (pre-trigger intro/idle),
+	// which must reset the background instead of staying on the last trigger
 	if (!activeBackgroundName || isFirstStage) {
 		return rule.background.base;
 	}

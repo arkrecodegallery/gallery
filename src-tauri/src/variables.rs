@@ -101,7 +101,6 @@ impl CSVFile {
             .delimiter(b'@')
             .from_reader(content.as_bytes());
 
-        // set columns
         let headers = reader
             .headers()
             .with_context(|| format!("failed to read headers from '{}'", &path))?;
@@ -109,7 +108,6 @@ impl CSVFile {
             self.columns.insert(key.to_string(), i);
         }
 
-        // set data
         while let Some(result) = reader.records().next() {
             let record =
                 result.with_context(|| format!("failed to parse row of csv file '{}'", &path))?;

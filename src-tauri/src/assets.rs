@@ -16,7 +16,6 @@ pub struct AssetLookup {
     in_asset: bool,
 }
 
-/// One `<Asset>` container's path and the file names it holds.
 pub struct AssetGroup {
     pub container: String,
     pub files: Vec<String>,

@@ -125,13 +125,12 @@ export class ModelFrameSync {
 		this.bond.updatePlaybackProgress(animationState, store.view);
 	}
 
-	// mutates the background track directly, independent of the main
-	// track's own clear-and-rebuild cycle, so it's never restarted by
-	// unrelated stage/checkbox changes - only when its own clip changes
+	// mutated independent of the main track's clear-and-rebuild cycle,
+	// so it's only restarted when its own clip changes, never by
+	// unrelated stage/checkbox changes
 	private updateBondBackground(animationState: AnimationState) {
 		if (store.view !== "bond") return;
-		// a checkbox multi-select can claim this same track index this frame -
-		// getAnimation() already set/cleared it, don't fight over ownership
+		// getAnimation() already claimed this index for a checkbox multi-select
 		if (this.bond.backgroundTrackClaimedByMain) return;
 
 		const suppressed = Object.keys(this.checkboxAnimations.animations).length > 1;

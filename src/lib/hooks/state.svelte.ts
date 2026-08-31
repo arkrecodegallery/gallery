@@ -11,10 +11,8 @@ import type {
 const menuStates = localStorage.getItem("menuStates");
 
 export class Store {
-	// data
 	map: Map = $state({});
 
-	// model
 	uiState: UIState = $state("visible");
 	loading: boolean = $state(true);
 	view: ModelView = $state("hero");
@@ -22,14 +20,12 @@ export class Store {
 	skeletonData: SkeletonData | undefined = $state();
 	modelState: ModelState = $state(new ModelState());
 
-	// renderer
 	_canvasElement: HTMLCanvasElement | undefined = $state();
 	get canvasElement(): HTMLCanvasElement {
 		if (!this._canvasElement) throw new Error("Canvas Element Undefined");
 		return this._canvasElement;
 	}
 
-	// table
 	table: Table<Entry> | undefined = $state(undefined);
 	sorting = $state<SortingState>([]);
 	columnFilters = $state<ColumnFiltersState>([]);

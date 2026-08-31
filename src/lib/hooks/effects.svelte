@@ -1,9 +1,6 @@
-<!-- Set up a bunch of side effects for the app -->
-
 <script lang="ts">
 	import { store } from "./state.svelte";
 
-	// update the heroIndex when filteredHeroData changes
 	$effect(() => {
 		if (store.filteredHeroData.length > 0) {
 			const entry = store.modelState.heroSelection.getAbsoluteEntry();
@@ -12,7 +9,6 @@
 		}
 	});
 
-	// save the heroIndex and trueHeroIndex to localStorage
 	$effect(() => {
 		localStorage.setItem(
 			"absoluteHeroIndex",
@@ -24,7 +20,6 @@
 		);
 	});
 
-	// save the table filters to localStorage
 	$effect(() => {
 		localStorage.setItem(
 			"menuStates",

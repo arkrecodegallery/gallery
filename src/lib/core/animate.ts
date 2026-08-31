@@ -101,23 +101,21 @@ export class Animate {
 		next: AnimationLookup | undefined
 	) {
 		if (name.mode === "skip") {
-			// skip outright
 			return;
 		}
 
 		if (name.fullName === "90_bg") {
-			// reliable bg channel
 			this.background.push(curr.animations[0]);
 			return;
 		}
 
 		if (name.stage >= 8) {
-			// skip background and misc effects
+			// misc background/effects clips, not real stages
 			return;
 		}
 
 		if (name.variant) {
-			// forced variant, regardless of naming-based continuation
+			// only ever set via a bondRule override, never by naming
 			this.handleVariant(curr);
 			return;
 		}
@@ -138,7 +136,6 @@ export class Animate {
 		}
 
 		if (name.mode === "finish") {
-			// always bypass a finish, only ever plays once
 			this.currentGroup.push(curr);
 			return;
 		}
@@ -158,10 +155,9 @@ export class Animate {
 
 	private handleTransition(prev: AnimationLookup | undefined, curr: AnimationEntry) {
 		if (prev?.name.transition) {
-			// skip multiple transitions in a row
+			// collapses runs of transitions down to the first
 			return;
 		}
-		// always bypass transition
 		this.currentGroup.push(curr);
 	}
 
@@ -172,8 +168,7 @@ export class Animate {
 		next: AnimationLookup | undefined
 	) {
 		if (!this.seenInitialIdle && name.prefix === 0) {
-			// stop on first idle
-			// first anim must be first idle
+			// literal "00_..." only, so leading junk can't leak in as stage 0
 			this.seenInitialIdle = true;
 			this.groups = [];
 			this.currentGroup = [];
@@ -182,16 +177,12 @@ export class Animate {
 			prev?.name.mode === "idle" &&
 			this.isVariantContinuation(prev.name, name)
 		) {
-			// numbered variant of the same idle - part of one big loop
 			this.addCycle(curr);
 		} else if (next?.name.mode === "loop") {
-			// stop on idle before a loop
 			this.flush(curr);
 		} else if (next?.name.transition) {
-			// stop on idle before a transition
 			this.flush(curr);
 		} else {
-			// otherwise bypass idle
 			this.currentGroup.push(curr);
 		}
 	}
@@ -202,10 +193,8 @@ export class Animate {
 		name: AnimationName
 	) {
 		if (prev?.name.mode === "loop" && this.isVariantContinuation(prev.name, name)) {
-			// numbered variant of the same loop - part of one big loop
 			this.addCycle(curr);
 		} else {
-			// always stop on loops
 			this.flush(curr);
 		}
 	}
@@ -216,10 +205,8 @@ export class Animate {
 		name: AnimationName
 	) {
 		if (prev?.name.mode === "end" && this.isVariantContinuation(prev.name, name)) {
-			// numbered variant of the same end - part of one big loop
 			this.addCycle(curr);
 		} else {
-			// always stop on an end
 			this.flush(curr);
 		}
 	}
@@ -247,10 +234,9 @@ export class Animate {
 		const alias = this.rename?.[animation.name] ?? animation.name;
 		const name = this.parseName(alias);
 
-		// override wins over whatever the naming convention parsed
 		const override = this.overrides?.[animation.name];
 		if (override === "stop") {
-			// same as "loop": always flushes a new group
+			// "loop" always flushes a new group
 			name.mode = "loop";
 			name.transition = false;
 		} else if (override === "transition") {
@@ -269,8 +255,7 @@ export class Animate {
 		this.stageByName = new Map();
 		this.groups.forEach((group, stageIndex) => {
 			group.forEach((entry, entryIndex) => {
-				// bypass footage (entryIndex > 0) leads into the next
-				// stop, so display it grouped with that stop, not this one
+				// bypass footage leads into the next stop, display it there
 				const displayStage =
 					entryIndex > 0 && stageIndex + 1 < this.groups.length
 						? stageIndex + 1
@@ -328,7 +313,7 @@ export class Animate {
 
 	parseAnimationMode(fullName: string, mode: string): AnimationMode {
 		if (mode === "loop") {
-			// loop trumps special cases
+			// wins even if the name also matches a special in this.specials
 			return "loop";
 		}
 
@@ -353,8 +338,6 @@ export class Animate {
 			case "emo":
 				return "skip";
 			default:
-				// if not a known special category
-				// just bypass it
 				return "finish";
 		}
 	}

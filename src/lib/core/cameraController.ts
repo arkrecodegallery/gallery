@@ -68,7 +68,6 @@ export class CameraController {
 			this.cameraY - deltaWorld.y,
 			0
 		);
-		// this.clampCamera();
 
 		this.lastX = x;
 		this.lastY = y;
@@ -82,8 +81,6 @@ export class CameraController {
 		const zoomSpeed = -0.001;
 		const prevZoom = this.camera.zoom;
 		const newZoom = Math.max(prevZoom - delta * zoomSpeed, 0.05);
-		// this.options.maxZoom
-		// );
 
 		const mouseWorldBefore = this.camera.screenToWorld(
 			new Vector3(this.lastX, this.lastY),
@@ -102,14 +99,9 @@ export class CameraController {
 
 		this.camera.position.add(mouseWorldBefore.sub(mouseWorldAfter));
 		this.camera.update();
-		// this.clampCamera();
 	}
 	private zoom(initialDistance: number, distance: number) {
 		const newZoom = initialDistance / distance;
-		// this.camera.zoom = Math.min(
-		// 	this.initialZoom * newZoom,
-		// 	this.options.maxZoom
-		// );
 		this.camera.zoom = this.initialZoom * newZoom;
 	}
 

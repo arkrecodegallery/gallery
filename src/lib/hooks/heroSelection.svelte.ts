@@ -59,7 +59,7 @@ export class HeroSelection {
 
 		switch (view) {
 			case "hero":
-				return false; // always available
+				return false;
 			case "alt":
 				return entry.alt === undefined;
 			case "skill":

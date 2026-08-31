@@ -13,11 +13,9 @@ function pageImagePaths(atlasPath: string, atlasText: string): string[] {
 	return parseAtlasPageImages(atlasText).map((name) => atlasDir + name);
 }
 
-// Warms the byte cache ahead of a synchronous loadModel() call: spine's own
-// asset-loading lifecycle requires loadBinary/loadTextureAtlas to fire in
-// the same tick as loadAssets (it increments a loop-driving counter), so
-// resolving cache/network bytes can't happen inside that call - it must
-// happen before it, here.
+// Spine's loadAssets increments a loop-driving counter synchronously, so
+// loadBinary/loadTextureAtlas can't await cache/network bytes themselves -
+// this resolves them ahead of time so loadModel() can stay synchronous.
 export async function prepareSpineAssets(binary: string, atlas: string): Promise<void> {
 	const atlasBytes = await getAssetBytes(atlas);
 	const atlasText = new TextDecoder().decode(atlasBytes);
@@ -33,8 +31,7 @@ function seedIfHot(canvas: SpineCanvas, url: string, mime: string): ArrayBuffer 
 	return bytes;
 }
 
-// Synchronous: only ever serves already-warmed bytes via setRawDataURI. A
-// miss here just falls through to spine's normal network fetch.
+// Only serves already-warmed bytes; a miss falls through to spine's own fetch.
 export function seedSpineAssets(canvas: SpineCanvas, binary: string, atlas: string): void {
 	seedIfHot(canvas, binary, "application/octet-stream");
 

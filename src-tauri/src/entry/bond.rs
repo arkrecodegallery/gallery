@@ -14,7 +14,6 @@ use crate::variables::VariableLookup;
 use super::connect_artifact::find_connect_artifact_cg;
 use super::{Entry, GalleryContext};
 
-/// A single bond entry: either a bundle to animate, or a fixed set of still images.
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "lowercase")]
 pub(super) enum BondPresentation {
@@ -32,8 +31,6 @@ pub(super) struct RoleCollectionRow {
     pub motion_field: String,
 }
 
-/// Rows feeding a hero's bond, combining `RoleCollection.txt`'s own Bond-query
-/// rows with the manual `extra_bond` override and any `ConnectArtifact` link.
 fn bond_rows(ctx: &GalleryContext, id: &str) -> Option<Vec<RoleCollectionRow>> {
     let mut rows =
         find_role_collection_rows(id, ctx.variables, ctx.rules, RoleCollectionQuery::Bond)?;
@@ -62,8 +59,7 @@ fn bond_rows(ctx: &GalleryContext, id: &str) -> Option<Vec<RoleCollectionRow>> {
     Some(rows)
 }
 
-/// cg ids that `init_bond` will resolve into a bond presentation for `id`,
-/// so `init_collection` can exclude them from the collection instead.
+/// Excluded from the collection view; `init_collection` shows them as bond instead.
 pub(super) fn bond_cg_ids(ctx: &GalleryContext, id: &str) -> HashSet<String> {
     bond_rows(ctx, id)
         .map(|rows| rows.into_iter().map(|row| row.cg_id).collect())
@@ -154,9 +150,7 @@ fn find_still_file(assets: &AssetLookup, folder_id: &str, target: &str) -> Optio
     })
 }
 
-/// Rows from `RoleCollection.txt` belonging to `id`, filtered to the patterns
-/// `Rules::get_collection` considers worth parsing, sorted by the row's own
-/// CSV key for a deterministic order (the underlying data is a `HashMap`).
+/// Sorted by CSV key for determinism; underlying data is a `HashMap`.
 pub(super) fn find_role_collection_rows(
     id: &str,
     variables: &VariableLookup,

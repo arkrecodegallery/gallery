@@ -325,7 +325,6 @@ fn copy_if_changed(src: &str, dest: &str) -> Result<()> {
     Ok(())
 }
 
-/// A resolved main bundle plus its optional alt-costume counterpart.
 pub struct MainAndAlt {
     pub main: Bundle,
     pub alt: Option<Bundle>,

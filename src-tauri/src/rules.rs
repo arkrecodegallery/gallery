@@ -1,11 +1,9 @@
 use std::collections::{HashMap, HashSet};
 
 macro_rules! collection {
-    // map-like
     ($($k:expr => $v:expr),* $(,)?) => {{
         core::convert::From::from([$(($k, $v),)*])
     }};
-    // set-like
     ($($v:expr),* $(,)?) => {{
         core::convert::From::from([$($v,)*])
     }};
@@ -14,21 +12,18 @@ macro_rules! collection {
 pub struct Rules {
     // heros that have an abnormal file path
     hero: HashMap<&'static str, Vec<&'static str>>,
-    // heros whose entire bundle lives under a non-Hero/ prefix
     hero_path_override: HashMap<&'static str, &'static str>,
-    // define the pattern for the alt so it is caught
+    // per-hero regex matching asset filenames that belong to the alt costume
     alt: HashMap<&'static str, &'static str>,
     // names not defined in tables but understood through inference
     names: HashMap<&'static str, &'static str>,
     // extra heros not recorded in the role file
     extra: Vec<&'static str>,
-    // patterns for images withing the role collection file
+    // patterns for images within the role collection file
     collection: Vec<&'static str>,
     // heros whose atlas texture isn't next to its atlas/skel
     mat_source: HashMap<&'static str, &'static str>,
-    // atlases whose texture is of the incorrect size
     atlas_size_mismatch: HashSet<&'static str>,
-    // cg ids whose image actually lives under a sibling cg id's folder
     collection_redirect: HashMap<&'static str, &'static str>,
     // (container, file) skels permanently excluded from unused_skels noise
     suppress_skel: HashSet<(&'static str, &'static str)>,
@@ -65,11 +60,7 @@ impl Rules {
             ],
             collection: vec![
                 "CG\\/A",
-                // the following are too irregular and therefore difficult to parse
-                // honestly not worth the effort compared to the other files
-                // "CG\\/P",
-                // "CG\\/Carnival",
-                // "CG\\/Story"
+                // CG/P, Carnival, Story: too irregular to parse, not worth it
             ],
             mat_source: collection! {
                 "H004" => "Hero/H004/",

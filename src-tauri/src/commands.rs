@@ -23,7 +23,6 @@ pub fn generate_map(dir_gallery_data: String) -> Result<String, String> {
 }
 
 fn _generate_map(dir_gallery_data: String) -> Result<()> {
-    // create lookup structures
     let assets = AssetLookup::new(&dir_gallery_data)?;
     let variables = VariableLookup::new(&dir_gallery_data)?;
     let rules = Rules::new();
@@ -36,7 +35,6 @@ fn _generate_map(dir_gallery_data: String) -> Result<()> {
         rules: &rules,
     };
 
-    // create map from lookup
     let ids = get_hero_ids(&variables, &rules)?;
     let mut map = BTreeMap::<String, Entry>::new();
     for id in ids {
@@ -46,7 +44,6 @@ fn _generate_map(dir_gallery_data: String) -> Result<()> {
     }
     missing.cleanup(&dir_gallery_data, &rules);
 
-    // write map files for use by frontend
     write_json(&dir_gallery_data, FILE_MAP, &map)?;
     write_json(&dir_gallery_data, FILE_MISSING, &missing)?;
 

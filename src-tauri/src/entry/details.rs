@@ -13,11 +13,6 @@ pub(super) struct Icons {
 }
 
 pub(super) fn init_icons(id: &str) -> Icons {
-    // TODO
-    // check rules for corrections (some need manual corrections)
-    // then check for if this icon exists
-    // if not, replace with No_Icon.png && log as missing
-
     Icons {
         hero: format!("{}Hero/{}/Img/Icon_Head_S_{}.png", DIR_ASSETS, id, id),
     }

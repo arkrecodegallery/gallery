@@ -26,16 +26,10 @@ pub enum MissingKey {
 pub struct Missing {
     log: BTreeMap<String, BTreeMap<MissingKey, Vec<String>>>,
 
-    // heros with a Role.txt row but no shipped skel/atlas assets yet
+    // has a Role.txt row but no shipped assets yet
     unreleased: BTreeSet<String>,
-    // skels that weren't used by any hero
-    // sometimes odd extra file like Cutscene
     unused_skels: BTreeSet<(String, String)>,
-    // cg that were found in the artifacts, role, or role collection but not used
-    // sometimes a placeholder image
     unused_cg: BTreeSet<String>,
-    // cg that were found but are missing a directory
-    // usually beta file not yet added
     missing_cg: BTreeSet<String>,
 }
 
@@ -64,9 +58,7 @@ impl Missing {
         skels
     }
 
-    /// Reads one column of a CSV file, applying `transform` to each row's value.
-    /// Returns `None` if the file or column doesn't exist (used to detect the end
-    /// of a run of dynamically-numbered columns like `DynamicField1`, `DynamicField2`, ...).
+    /// `None` marks the end of a `DynamicField1`, `DynamicField2`, ... run.
     fn scrape_column(
         variables: &VariableLookup,
         file_name: &str,

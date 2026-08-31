@@ -16,9 +16,6 @@ use details::{Details, Icons};
 
 use serde::{Deserialize, Serialize};
 
-/// Read-only pipeline state shared by every step of building an `Entry`,
-/// so it can be passed as a single reference instead of threading each
-/// lookup table through every function individually.
 pub struct GalleryContext<'a> {
     pub dir_gallery_data: &'a str,
     pub assets: &'a AssetLookup,

@@ -1,5 +1,6 @@
 mod bond;
 mod collection;
+mod connect_artifact;
 mod details;
 mod hero;
 

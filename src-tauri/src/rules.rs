@@ -34,6 +34,9 @@ pub struct Rules {
     suppress_skel: HashSet<(&'static str, &'static str)>,
     // cg ids permanently excluded from unused_cg noise
     suppress_cg: HashSet<&'static str>,
+    // hero id -> (cg id, motion field) hand-verified bond content with no
+    // Role/RoleCollection reference to derive it from automatically
+    extra_bond: HashMap<&'static str, (&'static str, &'static str)>,
 }
 
 impl Rules {
@@ -43,8 +46,6 @@ impl Rules {
                 "H003" => vec!["H003a", "H003b"],
             },
             hero_path_override: collection! {
-                // official Hero/H060/H060/ copy's mat is unfixable; this is a
-                // complete, working duplicate bundle from a boss cutscene
                 "H060" => "Cutscene/H060_CutScene/Spine/",
             },
             alt: collection! {
@@ -60,13 +61,7 @@ impl Rules {
             extra: vec![
                 "H800",
                 "H801",
-                // "H802",
-                // "H803",
-                // "H804",
-                // "H805",
-                // "H806",
-                // "H807",
-                // "H808",
+                "H802",
             ],
             collection: vec![
                 "CG\\/A",
@@ -77,7 +72,6 @@ impl Rules {
                 // "CG\\/Story"
             ],
             mat_source: collection! {
-                // texture attributed to a _DialogTV(_UI).prefab container instead
                 "H004" => "Hero/H004/",
                 "H006" => "Hero/H006/",
             },
@@ -87,27 +81,41 @@ impl Rules {
                 "A0098",
             },
             collection_redirect: collection! {
-                // paired CG whose LoveTalk texture is filed under the sibling id
                 "A0261" => "A0297",
                 "A0262" => "A0298",
+                "A0040" => "Carnival006",
             },
             suppress_skel: collection! {
-                // deliberate stub exclusion: no Img/Skill_Prefab (see `extra`)
                 ("Assets/Game/Hero/H803/H803/H803_SkeletonData.asset", "H803.skel"),
                 ("Assets/Game/Hero/H805/H805/H805_SkeletonData.asset", "H805.skel"),
                 ("Assets/Game/Hero/H806/H806/H806_SkeletonData.asset", "H806.skel"),
                 ("Assets/Game/Hero/H807/H807/H807_SkeletonData.asset", "H807.skel"),
                 ("Assets/Game/Hero/H808/H808/H808_SkeletonData.asset", "H808.skel"),
-                // dup of the working Hero/H128 bundle, harmless cutscene leftover
+                // duplicate of Hero/H128
                 ("Assets/Game/Cutscene/H128_CutScene/H128_CutScene.prefab", "H128.skel"),
-                // broken copy superseded by hero_path_override's Cutscene redirect
+                // broken; see hero_path_override
                 ("Assets/Game/Hero/H060/H060/H060_SkeletonData.asset", "H060.skel"),
-                // unreferenced alt-pose variant, not hooked to any RoleCollection row
                 ("Assets/Game/CG/A0015/A0015_02/A0015_02_SkeletonData.asset", "A0015_02.skel"),
             },
             suppress_cg: collection! {
-                // Artifact "Other"-type item's flavor CG, not a hero bond
-                "A0054",
+                // H169 unreleased hero
+                "A0321",
+                "A0322",
+                "A0323",
+            },
+            extra_bond: collection! {
+                "H161" => ("A0299", "Bond"),
+                "H183" => ("A0365", "Bond"),
+                "H085" => ("A0038", "CG_1~CG_2~CG_3~CG_4"),
+                "H082" => ("A0046", "CG_1~CG_2~CG_3~CG_4"),
+                "H088" => ("A0048", "CG_1~CG_2~CG_3~CG_4"),
+                "H063" => ("A0049", "CG_1~CG_2~CG_3~CG_4"),
+                "H075" => ("A0051", "CG_1~CG_2~CG_3~CG_4"),
+                "H096" => ("A0052", "CG_1~CG_2~CG_3~CG_4"),
+                "H098" => ("A0054", "CG_1~CG_2~CG_3~CG_4"),
+                "H065" => ("A0055", "CG_1~CG_2~CG_3~CG_4"),
+                "H101" => ("A0056", "CG_1~CG_2~CG_3~CG_4"),
+                "H093" => ("A0058", "CG_1~CG_2~CG_3~CG_4~CG_5~CG_6"),
             },
         }
     }
@@ -156,5 +164,9 @@ impl Rules {
 
     pub fn is_cg_suppressed(&self, cg: &str) -> bool {
         self.suppress_cg.contains(cg)
+    }
+
+    pub fn get_extra_bond(&self, id: &str) -> Option<(&str, &str)> {
+        self.extra_bond.get(id).copied()
     }
 }

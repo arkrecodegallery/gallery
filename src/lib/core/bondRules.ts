@@ -249,6 +249,7 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0079: {
+		rename: { "01_Idle_ani": "00_Idle_ani" },
 		overrides: {
 			"02_Idle_ani": "variant",
 			"10_Idle_ani": "stop",
@@ -465,6 +466,30 @@ const rules: Record<string, BondRule> = {
 			"03_Idle_Hand_ani": "variant",
 		},
 	},
+	A0287: {
+		overrides: {
+			"01_Idle_ani": "variant",
+			"01_Idle_Electric_ani": "stop",
+			"02_Idle_Electric_ani": "variant",
+			"10_Idle_Hand_ani": "stop",
+		},
+	},
+	A0290: {
+		overrides: {
+			"01_Idle_ani": "variant",
+			"02_Idle_Boobs": "stop",
+		},
+		reorderBefore: {
+			"01_Idle_ani": "01_Debut_ani",
+		},
+	},
+	A0293: {
+		skip: ["02_Idle_ani"],
+		overrides: {
+			"01_Idle_ani": "variant",
+			"05_Idle_In_ani": "bypass",
+		},
+	},
 	A0296: {
 		overrides: {
 			"01_Idle_ani": "variant",
@@ -479,6 +504,12 @@ const rules: Record<string, BondRule> = {
 			progress: {
 				"90_BG": "19_Loop_ani",
 			},
+		},
+	},
+	A0299: {
+		overrides: {
+			"01_Idle_ani": "stop",
+			"02_Idle_ani": "variant",
 		},
 	},
 	A0302: {
@@ -520,6 +551,7 @@ const rules: Record<string, BondRule> = {
 	},
 	A0317: {
 		// they did it again but only for some???
+		rename: { "00_ldle_ani": "00_Idle_ani" },
 		overrides: {
 			"01_ldle_ani": "variant",
 			"02_ldle_Pull": "stop",
@@ -593,6 +625,7 @@ const rules: Record<string, BondRule> = {
 		},
 	},
 	A0350: {
+		rename: { "00_Foot_ani": "00_Idle_ani" },
 		overrides: {
 			"01_Foot_ani": "variant",
 			"02_Foot_ani": "stop",
@@ -627,6 +660,7 @@ const rules: Record<string, BondRule> = {
 			"23_Loop_ani_short_m",
 			"40_End_loop_ani",
 		],
+		rename: { "01_Friction_ani": "00_Idle_ani" },
 		overrides: {
 			"05_Nipple_ani": "stop",
 		},
@@ -636,6 +670,15 @@ const rules: Record<string, BondRule> = {
 			"01_Idle_ani": "variant",
 			"11_Hand_ani": "stop",
 			"12_Friction_ani": "stop",
+		},
+	},
+	A0365: {
+		skip: ["02_Friction_loop", "10_Idle_loop_ani"],
+		rename: {
+			"01_Idle_ani": "00_Idle_ani",
+		},
+		overrides: {
+			"02_Friction_ani": "stop",
 		},
 	},
 	A0368: {
@@ -661,6 +704,17 @@ const rules: Record<string, BondRule> = {
 	},
 	A0386: {
 		skip: ["22_Loop_ani2", "22_Loop_ani3"],
+	},
+	A0389: {
+		rename: {
+			"01_Idle_ani": "00_Idle_ani",
+		},
+		overrides: {
+			"02_Friction_ani": "stop",
+			"03_Friction_ani": "variant",
+			"09_Idle_ani": "stop",
+			"10_Idle_ani": "variant",
+		},
 	},
 	A0392: {
 		rename: {
@@ -695,6 +749,15 @@ const rules: Record<string, BondRule> = {
 			"32_Loop1_ani": "stop",
 			"33_Loop1_ani": "stop",
 			"34_Loop1_ani": "stop",
+		},
+	},
+	A0422: {
+		overrides: {
+			"01_Idle_ani": "variant",
+			"02_Hand_ani": "stop",
+			"05_Friction_ani": "stop",
+			"06_Friction_ani": "variant",
+			"41_End_ani": "variant",
 		},
 	},
 	A0434: {

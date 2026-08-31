@@ -4,7 +4,7 @@ use crate::assets::AssetLookup;
 use crate::missing::{Missing, MissingKey};
 use crate::rules::Rules;
 
-use super::bond::{find_role_collection_rows, RoleCollectionQuery};
+use super::bond::{bond_cg_ids, find_role_collection_rows, RoleCollectionQuery};
 use super::GalleryContext;
 
 struct CollectionMatch {
@@ -18,9 +18,11 @@ pub(super) fn init_collection(
     missing: &mut Missing,
 ) -> Option<Vec<String>> {
     let rows = find_role_collection_rows(id, ctx.variables, ctx.rules, RoleCollectionQuery::Collection)?;
+    let bond_cg_ids = bond_cg_ids(ctx, id);
 
     let result = rows
         .into_iter()
+        .filter(|row| !bond_cg_ids.contains(&row.cg_id))
         .filter_map(|row| {
             missing.record_cg(row.cg_id.clone());
             find_collection(id, &row.cg_id, ctx.assets, ctx.rules, missing)

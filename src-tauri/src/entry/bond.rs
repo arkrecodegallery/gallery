@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use itertools::Itertools;
 use regex::Regex;
 use serde::{Deserialize, Serialize};
@@ -9,6 +11,7 @@ use crate::missing::{Missing, MissingKey};
 use crate::rules::Rules;
 use crate::variables::VariableLookup;
 
+use super::connect_artifact::find_connect_artifact_cg;
 use super::{Entry, GalleryContext};
 
 /// A single bond entry: either a bundle to animate, or a fixed set of still images.
@@ -29,19 +32,59 @@ pub(super) struct RoleCollectionRow {
     pub motion_field: String,
 }
 
+/// Rows feeding a hero's bond, combining `RoleCollection.txt`'s own Bond-query
+/// rows with the manual `extra_bond` override and any `ConnectArtifact` link.
+fn bond_rows(ctx: &GalleryContext, id: &str) -> Option<Vec<RoleCollectionRow>> {
+    let mut rows =
+        find_role_collection_rows(id, ctx.variables, ctx.rules, RoleCollectionQuery::Bond)?;
+
+    if let Some((cg_id, motion_field)) = ctx.rules.get_extra_bond(id) {
+        rows.push(RoleCollectionRow {
+            cg_id: cg_id.to_string(),
+            motion_field: motion_field.to_string(),
+        });
+    }
+
+    if let Some(cg_id) = find_connect_artifact_cg(id, ctx.variables) {
+        let has_bundle = !ctx
+            .assets
+            .get_by_prefix(&format!("CG/{}/{}/", cg_id, cg_id))
+            .is_empty();
+
+        if has_bundle && !rows.iter().any(|row| row.cg_id == cg_id) {
+            rows.push(RoleCollectionRow {
+                cg_id,
+                motion_field: "Bond".to_string(),
+            });
+        }
+    }
+
+    Some(rows)
+}
+
+/// cg ids that `init_bond` will resolve into a bond presentation for `id`,
+/// so `init_collection` can exclude them from the collection instead.
+pub(super) fn bond_cg_ids(ctx: &GalleryContext, id: &str) -> HashSet<String> {
+    bond_rows(ctx, id)
+        .map(|rows| rows.into_iter().map(|row| row.cg_id).collect())
+        .unwrap_or_default()
+}
+
 pub(super) fn init_bond(
     ctx: &GalleryContext,
     id: &str,
     missing: &mut Missing,
 ) -> Option<Vec<BondPresentation>> {
-    let rows = find_role_collection_rows(id, ctx.variables, ctx.rules, RoleCollectionQuery::Bond)?;
+    let rows = bond_rows(ctx, id)?;
 
     let mut result = Vec::new();
     for row in rows {
         missing.record_cg(row.cg_id.clone());
 
         if row.motion_field.starts_with("CG") {
-            if let Some(images) = find_still(id, ctx.assets, &row.cg_id, &row.motion_field, missing) {
+            if let Some(images) =
+                find_still(id, ctx.assets, ctx.rules, &row.cg_id, &row.motion_field, missing)
+            {
                 result.push(BondPresentation::Stills { images });
             }
         } else {
@@ -67,38 +110,48 @@ pub(super) fn init_bond(
 fn find_still(
     id: &str,
     assets: &AssetLookup,
+    rules: &Rules,
     bond: &str,
     motions: &str,
     missing: &mut Missing,
 ) -> Option<Vec<String>> {
     let motion_list: Vec<&str> = motions.split("~").collect();
-
-    let prefix = format!("CG/{}", bond);
-    let groups = assets.get_by_prefix(&prefix);
+    let redirect = rules.get_collection_redirect(bond);
 
     let mut result = Vec::<String>::new();
-    'outer: for motion in motion_list {
-        if let Some(num) = motion.split("_").last() {
-            let target = format!("{}_{}", bond, num);
-            for group in &groups {
-                for file in &group.files {
-                    if file == &target {
-                        result.push(Entry::build_file_path(&group.container, &format!("{}.png", file)));
-                        continue 'outer;
-                    }
-                }
+    for motion in motion_list {
+        let target = motion.split("_").last().map(|num| format!("{}_{}", bond, num));
+
+        let found = target.as_deref().and_then(|target| {
+            find_still_file(assets, bond, target)
+                .or_else(|| redirect.and_then(|redirect| find_still_file(assets, redirect, target)))
+        });
+
+        match found {
+            Some(path) => result.push(path),
+            None => {
+                missing.insert_log(
+                    id.to_string(),
+                    MissingKey::Bond,
+                    format!("Missing still '{}' (id '{}')", motion, bond),
+                );
+                return None;
             }
         }
-
-        missing.insert_log(
-            id.to_string(),
-            MissingKey::Bond,
-            format!("Missing still '{}' (id '{}')", motion, bond),
-        );
-        return None;
     }
 
     Some(result)
+}
+
+fn find_still_file(assets: &AssetLookup, folder_id: &str, target: &str) -> Option<String> {
+    let prefix = format!("CG/{}", folder_id);
+    assets.get_by_prefix(&prefix).into_iter().find_map(|group| {
+        group
+            .files
+            .iter()
+            .find(|file| file.as_str() == target)
+            .map(|file| Entry::build_file_path(&group.container, &format!("{}.png", file)))
+    })
 }
 
 /// Rows from `RoleCollection.txt` belonging to `id`, filtered to the patterns

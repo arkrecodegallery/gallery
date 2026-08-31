@@ -8,7 +8,7 @@ import type { Bundle, Entry, Map as GalleryMap } from "../src/lib/core/types";
 
 /**
  * Deploy-prep script: tree-shakes containers/ down to only the files
- * map.json actually references (skel/atlas/textures/icons/CG images),
+ * map.json actually references (skel/atlas/textures/CG images),
  * for the static (non-Tauri) build. containers/ dumps are full AssetStudio
  * exports and are typically orders of magnitude larger than what's used.
  *
@@ -26,7 +26,6 @@ function collectBundlePaths(bundle: Bundle | undefined, out: Set<string>) {
 }
 
 function collectEntryPaths(entry: Entry, out: Set<string>) {
-	out.add(entry.icons.hero);
 	collectBundlePaths(entry.hero, out);
 	collectBundlePaths(entry.alt, out);
 	collectBundlePaths(entry.skill, out);

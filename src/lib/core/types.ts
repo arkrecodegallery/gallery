@@ -2,7 +2,6 @@ export type Map = Record<string, Entry>;
 
 export interface Entry {
 	id: string;
-	icons: Icons;
 	details: Details;
 
 	hero: Bundle;
@@ -16,10 +15,6 @@ export interface Entry {
 export type BondPresentation =
 	| { kind: "animated"; bundle: Bundle; motions: string[] }
 	| { kind: "stills"; images: string[] };
-
-export interface Icons {
-	hero: string;
-}
 
 export interface Details {
 	name: string;

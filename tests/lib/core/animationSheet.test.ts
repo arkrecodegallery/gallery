@@ -11,7 +11,6 @@ describe("collectSkelRefs", () => {
 		const map: GalleryMap = {
 			H003: {
 				id: "H003",
-				icons: { hero: "" },
 				details: {} as GalleryMap["H003"]["details"],
 				hero: bundle("H003.skel"),
 				alt: bundle("H003b.skel"),
@@ -39,7 +38,6 @@ describe("collectSkelRefs", () => {
 		const map: GalleryMap = {
 			H004: {
 				id: "H004",
-				icons: { hero: "" },
 				details: {} as GalleryMap["H004"]["details"],
 				hero: bundle("H004.skel"),
 			},

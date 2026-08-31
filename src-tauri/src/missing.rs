@@ -15,7 +15,6 @@ use crate::{
 
 #[derive(Debug, PartialEq, Eq, Hash, Serialize, Deserialize, PartialOrd, Ord, Clone, Copy)]
 pub enum MissingKey {
-    Icon,
     Hero,
     Skill,
     Bond,

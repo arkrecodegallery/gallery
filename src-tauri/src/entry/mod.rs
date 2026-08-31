@@ -12,7 +12,7 @@ use crate::utils::is_none_or_empty;
 use crate::variables::VariableLookup;
 
 use bond::BondPresentation;
-use details::{Details, Icons};
+use details::Details;
 
 use serde::{Deserialize, Serialize};
 
@@ -26,7 +26,6 @@ pub struct GalleryContext<'a> {
 #[derive(Serialize, Deserialize)]
 pub struct Entry {
     id: String,
-    icons: Icons,
     details: Details,
 
     hero: Bundle,
@@ -47,7 +46,6 @@ impl Entry {
 
         Some(Self {
             id: id.to_string(),
-            icons: details::init_icons(id),
             details: Details::new(id, ctx.variables, ctx.rules),
 
             hero,

@@ -16,7 +16,6 @@ function fakeSkeleton(names: string[]): SkeletonData {
 function fakeEntry(overrides: Partial<Entry> = {}): Entry {
 	return {
 		id: "H999",
-		icons: { hero: "" },
 		details: {} as Entry["details"],
 		hero: { skel: "Assets/H999/H999.skel", atlas: "Assets/H999/H999.atlas" },
 		...overrides,

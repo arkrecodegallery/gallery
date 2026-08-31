@@ -2,21 +2,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::constants::{
     DETAIL_BIRTHDAY, DETAIL_CONSTELLATION, DETAIL_CUP_SIZE, DETAIL_ELEMENT, DETAIL_HEIGHT,
-    DETAIL_JOB, DETAIL_NAME, DETAIL_STARS, DETAIL_WEIGHT, DIR_ASSETS, FILE_ROLE,
+    DETAIL_JOB, DETAIL_NAME, DETAIL_STARS, DETAIL_WEIGHT, FILE_ROLE,
 };
 use crate::rules::Rules;
 use crate::variables::VariableLookup;
-
-#[derive(Serialize, Deserialize, Clone, Default)]
-pub(super) struct Icons {
-    hero: String,
-}
-
-pub(super) fn init_icons(id: &str) -> Icons {
-    Icons {
-        hero: format!("{}Hero/{}/Img/Icon_Head_S_{}.png", DIR_ASSETS, id, id),
-    }
-}
 
 #[derive(Serialize, Deserialize, Clone, Default)]
 pub(super) struct Details {

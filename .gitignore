@@ -32,5 +32,4 @@ vite.config.ts.timestamp-*
 /static/gallery-data
 
 # Development
-# GUIDE.md
-# TODO.md
+/local

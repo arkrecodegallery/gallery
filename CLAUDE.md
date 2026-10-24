@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-Ark Re:Code Gallery ("Gallery") is a Tauri 2 desktop app for viewing Spine skeletal models extracted from the gacha game *Ark Re:Code*. It is "bring-your-own-files": at first launch the user points it at a data folder containing an `assets.xml` manifest and a `containers` directory of extracted game files (Sprite/TextAsset/Texture2D dumps, typically produced by AssetStudio). See `GUIDE.md` for the exact expected folder layout and `TODO.md` for known bugs / in-progress design notes on bond animation sequencing.
+Ark Re:Code Gallery ("Gallery") is a Tauri 2 desktop app for viewing Spine skeletal models extracted from the gacha game *Ark Re:Code*. It is "bring-your-own-files": at first launch the user points it at a data folder containing an `assets.xml` manifest and a `containers` directory of extracted game files (Sprite/TextAsset/Texture2D dumps, typically produced by AssetStudio). See `README.md` for the expected folder layout and `TODO.md` for known bugs / in-progress design notes on bond animation sequencing.
 
 The app has two halves that only talk to each other through one Tauri command and one generated JSON file:
 

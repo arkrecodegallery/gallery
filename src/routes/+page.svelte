@@ -31,4 +31,9 @@
 	</div>
 </div>
 
-<p class="absolute inset-0 top-2 left-2 text-gray-400 pointer-events-none">Latest Version: 2026-08-19</p>
+<div
+	class="absolute flex flex-col inset-0 top-2 left-2 text-gray-400 pointer-events-none"
+>
+	<p>Latest Version: 2026-08-19</p>
+	<p>Requires WebGL (get.webgl.org)</p>
+</div>

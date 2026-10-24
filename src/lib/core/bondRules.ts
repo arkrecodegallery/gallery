@@ -687,6 +687,13 @@ const rules: Record<string, BondRule> = {
 			"30_Loop_In_ani": "stop",
 		},
 	},
+	A0374: {
+		overrides: {
+			"15_Idle_ani": "stop",
+			"16_Idle_ani": "variant",
+			"31_Finish_Out_ani": "bypass",
+		},
+	},
 	A0377: {
 		rename: {
 			"01_Idle_ani": "00_Idle_ani",
@@ -722,6 +729,12 @@ const rules: Record<string, BondRule> = {
 		},
 		overrides: {
 			"02_Friction_ani": "stop",
+		},
+	},
+	A0404: {
+		overrides: {
+			"11_Idle2_ani": "stop",
+			"12_Idle2_ani": "variant",
 		},
 	},
 	A0410: {
@@ -760,12 +773,26 @@ const rules: Record<string, BondRule> = {
 			"41_End_ani": "variant",
 		},
 	},
+	A0428: {
+		rename: {
+			"01_Idle_ani": "00_Idle_ani",
+		},
+		overrides: {
+			"02_Friction_ani": "stop",
+			"03_Friction_ani": "variant",
+		},
+	},
 	A0434: {
 		overrides: {
 			"01_Idle_ani": "variant",
 			"10_Friction_ani": "stop",
 			"11_Friction_ani": "variant",
 			"41_End_ani": "variant",
+		},
+	},
+	A0461: {
+		overrides: {
+			"30_Idle2_ani": "stop",
 		},
 	},
 };

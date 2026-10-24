@@ -53,11 +53,7 @@ impl Rules {
                 "H801" => "Mina",
                 "H802" => "Teddy",
             },
-            extra: vec![
-                "H800",
-                "H801",
-                "H802",
-            ],
+            extra: vec!["H800", "H801", "H802"],
             collection: vec![
                 "CG\\/A",
                 // CG/P, Carnival, Story: too irregular to parse, not worth it
@@ -65,6 +61,7 @@ impl Rules {
             mat_source: collection! {
                 "H004" => "Hero/H004/",
                 "H006" => "Hero/H006/",
+                "H079" => "Hero/H210/H210/",
             },
             atlas_size_mismatch: collection! {
                 "H183_S",
@@ -97,6 +94,9 @@ impl Rules {
             extra_bond: collection! {
                 "H161" => ("A0299", "Bond"),
                 "H183" => ("A0365", "Bond"),
+                "H186" => ("A0374", "Bond"),
+                "H190" => ("A0428", "Bond"),
+                "H193" => ("A0437", "Bond"),
                 "H085" => ("A0038", "CG_1~CG_2~CG_3~CG_4"),
                 "H082" => ("A0046", "CG_1~CG_2~CG_3~CG_4"),
                 "H088" => ("A0048", "CG_1~CG_2~CG_3~CG_4"),

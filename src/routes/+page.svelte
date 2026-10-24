@@ -30,3 +30,5 @@
 		{/if}
 	</div>
 </div>
+
+<p class="absolute inset-0 top-2 left-2 text-gray-400 pointer-events-none">Latest Version: 2026-08-19</p>
